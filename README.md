@@ -1,50 +1,98 @@
 # 850 Hot Air Modernization
 
-Open-source modernization project for classic **850-style hot-air rework stations** that use a pump in the main unit.
+An open-source project to give **old and inexpensive 850-style hot-air rework stations modern features** without having to replace the entire station.
 
-The current development platform is a **Hony 850**, but the project is being documented with the goal of making the design adaptable to other similar 850-style stations whenever their electrical architecture is compatible.
+The current prototype is being developed using a **Hony 850**, but the goal is to make the project useful for other similar 850-style stations whenever possible.
 
-> **Project status:** experimental / work in progress. The hardware and firmware are still being designed and tested.
+> **Project status:** Work in progress. The hardware and software are still being developed and tested.
 
-## Goals
+## What is the idea?
 
-The objective is to keep the useful parts of a traditional 850 station while replacing or improving its control system with modern features:
+Classic 850-style hot-air stations are simple, cheap and often still very useful, but their controls and safety features are outdated compared with modern stations.
 
-- Closed-loop temperature control.
-- Adjustable airflow control.
-- Automatic handpiece/stand detection.
-- **Immediate heater shutdown** when the handpiece is placed in the stand.
-- Automatic cooldown: the air pump keeps running after heater shutdown until the handpiece reaches a safe temperature.
-- Automatic pump shutdown after cooldown.
-- Simple digital user interface and display.
-- Safety-oriented firmware behavior.
-- First implementation based on an **Arduino Nano**.
-- Firmware architecture intended to be portable later to an **ESP32**.
+Instead of replacing everything, this project aims to **reuse as many useful original parts as possible** and replace the old control system with a modern digital one.
 
-## Current test station
+The goal is to make these stations easier and safer to use while keeping the project affordable and relatively easy to reproduce.
 
-The prototype is currently being developed around a Hony 850-style station with:
+## Planned features
 
-- Pump located inside the station body.
-- Nominal station rating around 300 W.
-- Heater measured at approximately 250 W on the current unit.
-- Existing analog controls to be progressively replaced or interfaced with a digital controller.
+The project is planned to include:
 
-These values describe the current test unit and **must not be assumed to be identical on every 850-style station**.
+* **PID temperature control** to keep the selected temperature more stable.
+* Digital temperature adjustment.
+* Digital airflow adjustment.
+* **Rotary encoders** instead of the original analog control knobs.
+* A display showing temperature, airflow and station status.
+* Automatic detection when the hot-air handle is placed in its holder.
+* Immediate heater shutdown when the handle is placed in the holder.
+* Automatic cooldown using the air pump.
+* Automatic pump shutdown once the handle reaches a safe temperature.
+* Additional software safety protections.
+* Arduino Nano as the first controller.
+* Possibility of adapting the project to ESP32 later.
 
-## Planned operating sequence
+## How will it be built?
 
-A key feature of this modernization is automatic cooldown:
+The intention is **not to discard everything inside the original station**.
 
-1. The station operates normally while the handpiece is in use.
-2. A stand sensor detects when the handpiece is returned to its holder.
-3. Heater power is disabled immediately.
-4. The air pump continues running to cool the heater and handpiece.
-5. Temperature is monitored during cooldown.
-6. Once a safe temperature is reached, the pump is turned off automatically.
-7. Removing the handpiece from the stand returns the station to its normal operating state.
+Parts that are still useful, such as the air pump, heater, transformer or other suitable components, may be reused depending on the station.
 
-The exact thresholds, timing and safety logic will be documented as testing progresses.
+The original analog control electronics will be replaced by a new digital control system.
+
+During the first development stages, the new control board will be built using **perforated prototyping board**, making it easier to modify and test the circuit.
+
+Once the design is proven and stable, a dedicated PCB may be designed.
+
+## Temperature control
+
+Temperature will be controlled using a **PID controller**.
+
+In simple terms, the controller continuously checks the actual air temperature and adjusts heater power automatically to keep it as close as possible to the temperature selected by the user.
+
+This should provide more stable and predictable heating than the original basic analog control.
+
+## Automatic cooldown
+
+One of the main improvements will be automatic handle detection.
+
+When the hot-air handle is placed in its holder:
+
+1. The station detects that the handle has been returned.
+2. Heater power is turned off immediately.
+3. The air pump continues running.
+4. The remaining heat is removed from the heater and handle.
+5. Once a safe temperature is reached, the pump turns off automatically.
+
+This is similar to the behavior found in many newer hot-air stations.
+
+## Current development station
+
+The first prototype is being developed using a **Hony 850-style hot-air station**.
+
+The current unit uses:
+
+* An air pump located inside the station.
+* A station rated at approximately 300 W.
+* A heater measured at approximately 250 W.
+
+These specifications only describe the station currently being used for development. Other 850-style stations may be different internally.
+
+## Who is this project for?
+
+The documentation is intended to be understandable for **electronics repair technicians and hobbyists with basic or intermediate electronics knowledge**.
+
+The objective is to avoid requiring advanced programming or engineering knowledge just to reproduce the modification.
+
+Whenever possible, the documentation will include:
+
+* Photos.
+* Wiring diagrams.
+* Component lists.
+* Clear connection instructions.
+* Measurements.
+* Firmware ready to upload.
+* Explanations of what each part does.
+* Troubleshooting information.
 
 ## Repository structure
 
@@ -54,41 +102,30 @@ The exact thresholds, timing and safety logic will be documented as testing prog
 ├── BOM.md
 ├── CHANGELOG.md
 ├── docs/
-│   ├── roadmap.md
-│   └── safety.md
 ├── hardware/
-│   └── README.md
 ├── firmware/
-│   └── README.md
 └── mechanical/
-    └── README.md
 ```
 
-Additional folders will be added when schematics, wiring diagrams, PCB files, firmware releases, measurements and printable parts are ready.
+More files will be added as the project develops.
 
-## Documentation philosophy
+## Project goal
 
-The goal is not only to publish a finished modification. This repository will also document:
+The main objective is simple:
 
-- Original station measurements.
-- Reverse-engineering notes.
-- Design decisions and alternatives considered.
-- Failed approaches when they are useful to understand the final design.
-- Safety considerations.
-- Firmware behavior.
-- Wiring and assembly instructions.
-- Bill of materials and component alternatives.
-
-This should make the project reproducible instead of requiring readers to reconstruct the development process from scattered forum posts or conversations.
+**Take an old, inexpensive hot-air station and give it some of the useful features found in modern stations without making the modification unnecessarily expensive or difficult to reproduce.**
 
 ## Safety warning
 
-**This project involves mains voltage, high current, high temperatures and heating elements capable of causing fire, electric shock, burns or equipment damage.**
+This project involves **mains voltage, high temperatures and heating elements**.
 
-Do not reproduce any part of the project unless you understand the relevant electrical and thermal risks. The repository is a development record and is not currently a certified commercial design.
+Incorrect modifications can cause electric shock, burns, fire or damage to equipment.
 
-See [`docs/safety.md`](docs/safety.md) as the project develops.
+Do not reproduce the project unless you understand the electrical and thermal risks involved.
+
+The project is currently experimental and is not a certified commercial design.
 
 ## License
 
-A license has not yet been selected. Licensing will be decided before the project reaches a stable public release.
+A license has not yet been selected. It will be defined before the project reaches a stable public release.
+
