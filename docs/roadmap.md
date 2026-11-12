@@ -1,42 +1,42 @@
-# Project Roadmap
+# Roadmap — Nano-first; schematic postponed
 
-This document tracks the planned development stages for the 850 Hot Air Modernization project.
+## Phase A — complete the Arduino Nano control baseline (CURRENT)
 
-## Phase 1 — Characterize the original station
+- [x] Prototype Nano, LCD, encoders, MAX6675, zero-cross and pump/heater outputs.
+- [x] Log state machine and prototype PID/cooldown.
+- [x] Prototype self-test, WDT500, SAFE latch and serial fault snapshots.
+- [x] Record reproducible startup and partial-air test results.
+- [ ] Eliminate heater power while the pump has **no measured airflow**.
+- [ ] Instrument and prove pump control from AIR 20–100%, including stop/restart.
+- [ ] Validate actual relay contact behavior, optotriac power stage and startup/reset OFF.
+- [ ] Stop plausible-but-wrong MAX readings from becoming unsafe heater demand.
+- [ ] Fix cooldown and manual resume logic without bypassing safety.
+- [ ] Measure margin: Flash/SRAM/ISR jitter/I2C hangs and avoid dynamic allocation.
+- [ ] Implement reproducible build and test harness for exact Nano core/library versions.
+- [ ] Long-duration and fault-injection tests **only with independent barriers in place**.
 
-- Document the original wiring and control architecture.
-- Measure heater power, pump behavior and relevant voltages.
-- Identify the temperature sensor type and signal range.
-- Identify which parts of the original circuit can be reused safely.
+## Phase B — independent protection and hardware stabilization
 
-## Phase 2 — Prototype control hardware
+- [ ] Install and validate independent airflow/pressure proving.
+- [ ] Add independent thermal cutoff and heater power/relay feedback.
+- [ ] Resolve H11AA1 heating and low-voltage/USB return path.
+- [ ] Verify protective earth, insulation, fuses, wire ratings, EMI/EMC and mechanical heater fit.
+- [ ] Freeze the electrical BOM and physical pin assignment.
+- [ ] Record a complete as-built circuit with verification measurements.
 
-- Build the first controller around an Arduino Nano.
-- Implement heater control.
-- Implement pump / airflow control.
-- Add handpiece stand detection.
-- Validate fail-safe behavior before closed-loop testing.
+## Phase C — public reproducibility
 
-## Phase 3 — Firmware
+- [ ] **Publish final circuit schematic, after Phase B.** Not included in this snapshot.
+- [ ] Step-by-step build guide and validated BOM with supplier part numbers.
+- [ ] Bench test acceptance criteria and verified test results.
+- [ ] Release/version tags and license choice.
+- [ ] Optional PCB and mechanical mounting files.
 
-- Temperature acquisition and filtering.
-- Closed-loop temperature regulation.
-- User-adjustable temperature and airflow.
-- Stand detection state machine.
-- Immediate heater shutdown on stand detection.
-- Automatic cooldown and pump shutdown.
-- Sensor and over-temperature fault handling.
+## Phase D — only after Nano baseline
 
-## Phase 4 — Integration
+- [ ] Decide whether Mega2560 or ESP32-S3 is warranted.
+- [ ] Port state machine into a hardware abstraction layer.
+- [ ] For ESP32-S3: address 3.3 V I/O, MAX6675/LCD level shifting, optocoupler drive, RTOS task/watchdog design and independent interlocks.
+- [ ] Preserve regression logs/behavior and validate equivalence before enabling heater.
 
-- Final wiring diagram.
-- Final BOM.
-- Enclosure / front-panel integration.
-- Long-duration thermal testing.
-- Repeatability and safety testing.
-
-## Phase 5 — Portability
-
-- Document differences between compatible 850-style stations.
-- Separate hardware-specific code from control logic.
-- Port firmware to an ESP32-class controller if useful.
+There is **no committed date** for public release or schematic.
