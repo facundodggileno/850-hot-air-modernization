@@ -1,36 +1,22 @@
-# Experimental test evidence — not certification
+# Resultados y alcance de validación
 
-All observations originate in prototype bench logs / user-reported external probe tests. As of 2026-11-12 no independent electrical acceptance, current sensing, physical airflow verification or certified temperature calibration has been completed.
+### Niveles de evidencia
 
-## Startup self-test
-
-- V1.3.12 log: 12,288 synthetic state-machine cases pass, zero-cross observed ~101 events/s, 124/124 pump gate begin/end events in partial-air stage; RAM reported 1,214 bytes available.
-- V1.3.13 log: 12,288 pass, ~100 zero-cross events/s, 124/124 gates; RAM reported ~1,208 bytes.
-- V1.3.15 log: a run passed 12,288 cases, ~100 ZC/s, 124/124 pump gates; RAM reported ~1,143 bytes.
-- **Meaning:** the model and pulse counters ran. **It does not prove the pump is moving air or the heater cut physically.**
-
-## Reproduced FAULT 2 events
-
-| Firmware | Sequence | RAW / result |
+| Versión | Evidencia disponible | Qué NO demuestra |
 |---|---|---|
-| V1.3.12 | AIR40 heat, later flow transition and cooldown | 485 °C trips FAULT 2; RAW peaks ~519.7 °C |
-| V1.3.13 | HEAT → AIR70 → PAUSE, later HOT/cooldown | FAULT 2 at ~487 °C; RAW peaks ~495.7 °C |
-| V1.3.15 | Multiple AIR changes/resume and transient MAX drop guard events | Some heater output commands remained high after suspected sensor/flow anomalies; physical flow and heater current not captured |
+| V1.2.x / V1.3.x | Logs históricos y pruebas de taller con incidencias | Estabilidad y seguridad de V2.0.5 |
+| V1.4.x | Evolución de interfaz, autotune y protecciones | Certificación eléctrica |
+| **V2.0.2** | Usuario confirmó funcionamiento físico normal (calor, controles y ajuste a menor AIR) | Cobertura de todos los fallos o seguridad independiente |
+| **V2.0.5** | Sintaxis C++11 / stubs, simulación de transiciones de menú, autotune y cooldown documentadas | **Compilación real Arduino IDE, uso prolongado y comportamiento de 220 V** |
 
-## Compilation history
+### Ensayos térmicos de referencia (desarrollo histórico)
 
-- V1.3.11: Arduino IDE reported 32,006 bytes vs allowed 30,720 bytes, failed size limit.
-- V1.3.12/V1.3.13/V1.3.15 executed and emitted logs on Nano, but **there is no reproduced toolchain build/version lock or independent CI result in this repository**.
-- Syntactic/model test passes are not interchangeable with real-AVR compilation, ISR timing measurement or hardware validation.
+Mediciones con termocupla externa: consigna 300 °C a AIR 100/40 % ≈196 °C en salida; 350 °C a AIR 100/40 % ≈239/235 °C; 380 °C a AIR 100/40 % ≈253–256/248 °C; 420 °C AIR 100 % ≈285 °C. Estos datos corresponden a pruebas previas y **no** validan automáticamente la versión V2.0.5 ni la consigna corregida actual.
 
-## Selected raw logs
+Factor experimental posterior `T_corr ≈ 0,68 × T_RAW`, ganancias de referencia `Kp=1,994, Ki=0,168, Kd=1,707`. Véase [calibración](thermal-calibration.md).
 
-- [V1.3.12](../tests/logs/2026-11-08-v1.3.12-thermal-fault2.txt)
-- [V1.3.13](../tests/logs/2026-11-08-v1.3.13-flow-resume-fault2.txt)
-- [V1.3.15](../tests/logs/2026-11-08-v1.3.15-safe-capture.txt)
+### Comprobaciones pendientes
 
-Each row of the serial CSV should be interpreted according to its own header; fields differ among firmware versions. 'airActual' is a commanded value, not measured flow.
+Compilación AVR real / memoria, tiempo y maniobras en la estación real, mediciones externas, corte del relé bajo fallo, integridad de alimentaciones y temperaturas de componentes. Los números de timer y la indicación AIR% representan **comandos**, no una medición de aire. El proyecto no contempla sensores de caudal.
 
-## Missing validation
-
-Real thermal sensor repeatability with calibrated probe; pump restart/flow at every phase setting; live relay contact/power measurement; fail-safe MCU reset/off handling; fault injection; EMC and long-duration endurance; independent thermal protection.
+[Historial](../CHANGELOG.md) · [Checklist](COMMISSIONING_ES.md) · [Validación incluida en el código V2.0.5](../firmware/current/Hony850Pro_Nano_Modular_v2_0_5/VALIDACION.md)

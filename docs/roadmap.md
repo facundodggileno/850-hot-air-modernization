@@ -1,42 +1,20 @@
-# Roadmap — Nano-first; schematic postponed
+# Próximas mejoras
 
-## Phase A — complete the Arduino Nano control baseline (CURRENT)
+## Prioridad alta
 
-- [x] Prototype Nano, LCD, encoders, MAX6675, zero-cross and pump/heater outputs.
-- [x] Log state machine and prototype PID/cooldown.
-- [x] Prototype self-test, WDT500, SAFE latch and serial fault snapshots.
-- [x] Record reproducible startup and partial-air test results.
-- [ ] Eliminate heater power while the pump has **no measured airflow**.
-- [ ] Instrument and prove pump control from AIR 20–100%, including stop/restart.
-- [ ] Validate actual relay contact behavior, optotriac power stage and startup/reset OFF.
-- [ ] Stop plausible-but-wrong MAX readings from becoming unsafe heater demand.
-- [ ] Fix cooldown and manual resume logic without bypassing safety.
-- [ ] Measure margin: Flash/SRAM/ISR jitter/I2C hangs and avoid dynamic allocation.
-- [ ] Implement reproducible build and test harness for exact Nano core/library versions.
-- [ ] Long-duration and fault-injection tests **only with independent barriers in place**.
+- [ ] Compilar V2.0.5 con Arduino AVR real y dependencias fijadas; documentar Flash y SRAM.
+- [ ] Verificar en banco real el arranque, LCD, dos encoders, fallo de MAX, watchdog, emergencia y stand.
+- [ ] Ensayar el autotune de 3 ciclos, su cancelación en stand y la revocación de permisos.
+- [ ] Medir disipación del H11AA1, inspeccionar circuitos de potencia y confirmar físicamente que el relé desconecta la calefacción.
+- [ ] Evaluar e implementar una protección térmica **independiente del firmware** para la unidad de trabajo.
 
-## Phase B — independent protection and hardware stabilization
+## Prioridad media
 
-- [ ] Install and validate independent airflow/pressure proving.
-- [ ] Add independent thermal cutoff and heater power/relay feedback.
-- [ ] Resolve H11AA1 heating and low-voltage/USB return path.
-- [ ] Verify protective earth, insulation, fuses, wire ratings, EMI/EMC and mechanical heater fit.
-- [ ] Freeze the electrical BOM and physical pin assignment.
-- [ ] Record a complete as-built circuit with verification measurements.
+- [ ] Consolidar una BOM de valores de resistencias verificados en las placas.
+- [ ] Revisar calibración con termómetro externo, misma boquilla y distancia de medición definida.
+- [ ] Agregar registros de prueba con identificación de hardware y firmware, temperatura y resultados.
+- [ ] Generar archivos CAD/EDA editables **sólo cuando correspondan al cableado real confirmado**, no a un diagrama hipotético.
 
-## Phase C — public reproducibility
+## Fuera del alcance, definitivamente
 
-- [ ] **Publish final circuit schematic, after Phase B.** Not included in this snapshot.
-- [ ] Step-by-step build guide and validated BOM with supplier part numbers.
-- [ ] Bench test acceptance criteria and verified test results.
-- [ ] Release/version tags and license choice.
-- [ ] Optional PCB and mechanical mounting files.
-
-## Phase D — only after Nano baseline
-
-- [ ] Decide whether Mega2560 or ESP32-S3 is warranted.
-- [ ] Port state machine into a hardware abstraction layer.
-- [ ] For ESP32-S3: address 3.3 V I/O, MAX6675/LCD level shifting, optocoupler drive, RTOS task/watchdog design and independent interlocks.
-- [ ] Preserve regression logs/behavior and validate equivalence before enabling heater.
-
-There is **no committed date** for public release or schematic.
+**No habrá ningún sensor de caudal, flujo ni paso de aire** y no se planea incorporarlo en versiones futuras. El control de bomba seguirá siendo de lazo abierto. Tampoco se presenta como hecho la construcción de una PCB o un esquema de fabricación que aún no esté respaldado por el montaje.

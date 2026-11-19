@@ -1,23 +1,25 @@
-# Changelog
+# Registro de versiones
 
-## 2026-11-12 — Documentation snapshot (not a firmware release)
+El historial **no** significa que todas las versiones pasaron el mismo nivel de ensayos.
 
-- Updated the repository from an early ~250 W concept to the actual Hony 850 / Yihua ~650 W experimental prototype.
-- Added current BOM with documented vs planned parts.
-- Added control architecture, pinout, thermal calibration, safety model, known failure cases, test evidence and development decisions.
-- Preserved exact lab source snapshots V1.3.15 and V1.3.12, earlier V1.2.6 reference, and isolated pump diagnostic.
-- Preserved logs of the AIR-change and temperature faults.
-- **Deliberately excluded circuit diagram/schematic until hardware stabilization.**
+## 2026-11-19 — V2.0.5 (último código publicado, pendiente de validación física integral)
+- Firmware modular dividido en 25 archivos dentro de `firmware/current`.
+- Menú PID: mantener AIR; pulsación corta AIR = atrás, TEMP = confirmar.
+- Consulta de Kp, Ki y Kd; autotune de 3 ciclos, con autorización explícita y limitada para realizarlo con mango apoyado en stand.
+- Cooldown al llegar a 100 °C RAW y activación automática con histéresis desde 110 °C RAW.
+- Publicadas las 12 hojas del diagrama, galería de fotografías del montaje y documentos académicos.
+- Eliminadas las propuestas de sensores de caudal; decisión definitiva de no instalarlos.
 
-## Experimental firmware history (selected)
+## 2026-11-19 — V2.0.2 (ensayo físico reportado en modo normal)
+- Se solucionaron errores de inclusión de Wire y símbolos AVR `__heap_start`/`__brkval`.
+- Se reportó funcionamiento del calentamiento, controles y cambio a caudal menor sin reproducir fallas anteriores.
 
-- **V1.2.6:** Earlier Nano reference with PID/cooldown and Yihua heater.
-- **V1.3.3:** 10-cycle autotune experiment with 100% heater capacity; recorded PID Kp 1.994, Ki 0.168, Kd 1.707.
-- **V1.3.5:** Experimental 0.68 outlet-temperature scale; intermittent hang observed on cooldown → AIR40 → 300 °C → HEAT.
-- **V1.3.7–1.3.10:** MAX power investigation, WDT500, startup self-test, and cooldown resume iterations.
-- **V1.3.11:** Allowed AIR20–100 heating; user AVR build reported **32,006 B vs 30,720 B limit**, so it did not fit.
-- **V1.3.12:** Slim diagnostic build; boot stress passed in user log; FAULT 2 / overtemperature observed.
-- **V1.3.13:** Auto-resume after airflow changes, trace of manual button/cooldown, further FAULT 2.
-- **V1.3.15:** Repromod-inspired SAFE latch, ~3 s airflow-change pause, sensor-drop guard and richer logging; **still not stable**.
+## 2026-11-19 — V2.0.0 a V2.0.1
+- Migración de sketch monolítico a módulos: control de hardware, sensor, pantalla, entradas, PID, EEPROM, seguridad y orquestador.
 
-The history above records observed progress, **not test certification**.
+## 2026-11-18 a 19 — V1.4.x
+- Versiones monolíticas previas con autotune, arranque, watchdog y ajustes. Consultar el registro de la carpeta de campo.
+
+## 2026-11-08 a 12 — V1.2.x / V1.3.x
+- Prototipo, pruebas térmicas, diagnósticos de bomba, problemas de MAX6675 y ajustes de protección.
+- Los logs y sketches históricos se conservan en el repositorio para comparación; **no** son firmwares estables alternativos.

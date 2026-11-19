@@ -1,0 +1,15 @@
+# Arduino local builds and editor data
+.build/
+build/
+*.hex
+*.elf
+*.eep
+*.map
+*.o
+*.obj
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+__pycache__/

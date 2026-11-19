@@ -1,15 +1,9 @@
-# Engineering decisions and deferred changes
+# Decisiones de diseño
 
-**2026-11-12 — Remain on Nano for now.** Mega2560 offers more timers and memory; ESP32-S3 offers more memory/compute and two cores. Neither fixes an unmeasured stopped pump. Keep the current Nano build as the baseline until state transitions, actual airflow and physical cutoff are understood.
-
-**2026-11-08 — Full heater heat capacity.** Original ~250 W element failed and was replaced with a Yihua ~650 W heater. This considerably increases the importance of air path and power disconnection validation.
-
-**2026-11-08 — MAX6675 VCC restored.** After discovering that the 5 V lead was disconnected, the ~0.68 empirical thermal relationship persisted. Do not conclude it is an intrinsic thermocouple calibration error.
-
-**2026-11-08 — Transition pause.** User requested ~3 s heater-off when AIR changes, then automatic resume unless manually paused; airflow settings 20–100% must remain available for diagnosis. Implemented in V1.3.15, still under test.
-
-**2026-11-08 — Repromod SAFE principles.** Adopt priority off, latched faults, deliberate reset and fault snapshot concept; Nano cannot reproduce independent second-core safety supervision. Never represent it as certified safety.
-
-**2026-11-12 — No schematic yet.** Only pin assignments and BOM can be documented reliably. Do not publish circuit diagram until the hardware is inspected, the safety layers are implemented and circuit values validated.
-
-**License:** not yet selected. Avoid asserting a specific license without maintainer approval.
+- **2026-11-19 — arquitectura vigente:** Arduino Nano ATmega328P y firmware modular V2.0.5 como base actual; preservar historial monolítico sin sustituir la revisión actual por la V1.3.x.
+- **2026-11-19 — sensores de aire:** decisión definitiva de **no instalar ni proponer sensores de caudal, flujo o paso de aire**. El porcentaje AIR es una orden. No confundir con realimentación.
+- **2026-11-19 — presentación/documentación:** diagrama V2.0.5 con conexiones y niveles de confianza; carpeta de campo y slides en primera persona, fotos reales de la estación y del primer/final calefactor.
+- **2026-11-19 — versión verificada:** V2.0.2 ensayada físicamente en modo normal, V2.0.5 simulada y pendiente de validación física.
+- **2026-11-19 — interfaz:** AIR corto vuelve y TEMP corto confirma en menú PID; AIR largo abre menú, autotune de tres ciclos con posibilidad de stand sólo bajo excepción temporal.
+- **2026-11-19 — cooldown:** final a 100 °C RAW; reactivación a 110 °C RAW. Las temperaturas RAW no son equivalentes a salida de boquilla.
+- **2026-11-12 — herencia de fallos:** registrar fallos históricos de bomba/termopar/triac, sin asegurar que un bug antiguo persiste en V2.0.5 sin prueba.

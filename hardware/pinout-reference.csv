@@ -1,0 +1,18 @@
+nano_pin,connected_to,description
+D2,H11AA1,Zero cross INT0
+D3,MOC3023,Pump triac gate
+D4,MOC3083,Heater triac gate
+D5,BC337,Relay driver
+D6,Buzzer,Alarm
+D7,Stand,HIGH=resting
+D8,TEMP encoder CLK,INPUT_PULLUP
+D9,TEMP encoder DT,INPUT_PULLUP
+A3,TEMP button,INPUT_PULLUP
+A0,AIR encoder CLK,INPUT_PULLUP
+A1,AIR encoder DT,INPUT_PULLUP
+A2,AIR button,INPUT_PULLUP
+D10,MAX6675 CS,SPI chip select
+D12,MAX6675 SO,SPI data out
+D13,MAX6675 SCK,SPI clock
+A4,LCD SDA,I2C
+A5,LCD SCL,I2C

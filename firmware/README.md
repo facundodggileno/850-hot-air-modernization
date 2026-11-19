@@ -1,27 +1,20 @@
-# Firmware snapshots — LAB only
+# Firmware Hony 850 Pro
 
-**None of these source files is an approved stable release.** These are exact development snapshots preserved to compare behavior. The AVR core/library versions and binary build hashes have not yet been locked.
+## Versión actual
 
-| Snapshot | Path | Why it matters |
-|---|---|---|
-| V1.3.15 | [LAB Repromod SAFE / 3 s flow](lab/Hony850Pro_V1_3_15_LAB_REPROMOD_SAFE_FLOW3S.ino) | Current experimental snapshot; unresolved lack of airflow/false readings |
-| V1.3.12 | [LAB diagnostic slim](lab/Hony850Pro_V1_3_12_LAB_DIAG_SLIM_NANO.ino) | Historical comparison after 1.3.11 overflowed Nano Flash |
-| V1.2.6 | [Earlier Yihua heater baseline](reference/Hony850Pro_V1_2_6_YIHUA_SAFE_COOL68.ino) | Earlier controls, not automatically safer |
-| Pump diagnostic V1 | [Isolated pump test](diagnostics/Hony850Pro_PUMP_ISOLATED_DIAG_V1.ino) | Alternates AIR100/70/40/100/40/100; heater AC must be physically disconnected |
+**[V2.0.5 — Arduino Nano, código modular](current/Hony850Pro_Nano_Modular_v2_0_5/)**. Conservar los **25 archivos juntos** dentro de `Hony850Pro_Nano_Modular_v2_0_5/` al abrir el `.ino`. [Leer instrucciones detalladas](current/Hony850Pro_Nano_Modular_v2_0_5/README.md) y [evidencias de validación](current/Hony850Pro_Nano_Modular_v2_0_5/VALIDACION.md).
 
-## Intended environment
+La V2.0.5 es **candidato de laboratorio**, no versión certificada ni ensayada íntegramente en la estación. La V2.0.2 fue la versión con funcionamiento físico normal reportado.
 
-- Arduino Nano ATmega328P (5 V), updated watchdog-compatible bootloader as reported.
-- Arduino AVR Boards package and Arduino IDE.
-- hd44780 library (Bill Perry), using hd44780_I2Cexp.
-- MAX6675 library providing max6675.h.
-- Wire.h and avr/wdt.h included with AVR framework.
-- Serial monitor 115200 baud for V1.3.15.
+## Arduino IDE
 
-**Before flashing:** inspect all pin assignments, relay driver polarity, actual device and bootloader. The firmware has not been built or tested in this documentation session.
+- Placa: Arduino Nano ATmega328P a 16 MHz.
+- Bibliotecas: `hd44780` (Bill Perry, con I2Cexp), `MAX6675` con API `readCelsius()`; `Wire`/`EEPROM` del core AVR.
+- `avr-g++`/`arduino-cli`: compilación final con bibliotecas reales **aún no verificada** en esta publicación.
+- Con la etapa calefactora físicamente desconectada probar pantalla, mandos, stand y termocupla.
 
-## Cautions
+## Versiones históricas
 
-The software uses direct AVR Timer1 registers and interrupts; moving it to Mega2560 or ESP32-S3 is **not** a blind board selection. An idle display or 100% AIR command is not a real flow sensor reading. Code builds are not a substitute for validating physical mains cut-off.
+Los archivos en `lab`, `reference` y `diagnostics` son registros anteriores; no deben mezclarse con el firmware actual. Ver [CHANGELOG](../CHANGELOG.md).
 
-For diagnosis, de-energize and physically isolate heater AC first; do not depend on D4/D5 being LOW as the only protection.
+**Fuera del alcance:** no se instala ni planifica ningún sensor de caudal, flujo o presión de aire.

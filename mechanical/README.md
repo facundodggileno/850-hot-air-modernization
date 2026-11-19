@@ -1,12 +1,5 @@
-# Mechanical
+# Adaptación mecánica
 
-This folder will contain any mechanical parts developed for the modernization, such as:
+Se conservó el gabinete Hony 850, bomba de diafragma y disposición de mango. Se adaptó el elemento térmico cerámico procedente de Yihua 8786D y su unión térmica se reubicó aproximadamente 5 mm.
 
-- Front-panel adapters.
-- Display mounts.
-- Sensor mounts.
-- Internal brackets.
-- Printable enclosure parts.
-- STL / STEP files and dimensional drawings.
-
-Mechanical files will be added only when the corresponding design has been tested for fit and thermal suitability.
+Las fotografías del trabajo real están en [docs/photos](../docs/photos/README.md). No se publican CAD/STL inventados para piezas cuya geometría no fue medida o documentada.
