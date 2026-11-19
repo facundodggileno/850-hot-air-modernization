@@ -1,9 +1,12 @@
-# Prototype hardware notes (no circuit diagram yet)
+# Hardware y conexiones
 
-This directory deliberately contains **no schematic and no mains wiring instructions** at this stage. The hardware is still being changed, and the heater/pump power stages and independent safety interlocks have not been validated.
+**Documento de referencia vigente:** [esquemático completo V2.0.5 (12 hojas, PDF)](Hony850Pro_Esquematico_Conexiones_Completas_V2_0_5.pdf).
 
-Available now: [Arduino Nano pin assignment as defined by the V1.3.15 firmware](pinout.md). It is a pin list, **not a verified as-built circuit**.
+El PDF documenta arquitectura, pinout, optoacopladores, relé, H11AA1, entradas/salidas, etapas de red y distinción entre señales confirmadas en el firmware y conexiones físicas pendientes. No supone que un conexionado AC no verificado está listo para fabricar.
 
-The prototype includes an adapted ~650 W heater, H11AA1 zero-cross stage, a separately switched pump via TRIAC and heater stage via MOC3083/BTA12, plus a relay command. Actual terminal connections, AC isolation, earth, fuse and suppression values require in-person verification before a diagram can be published.
+- [Conexiones y límites documentados](WIRING_ES.md)
+- [Pinout del Nano (CSV)](pinout-reference.csv)
+- [BOM](../bom/BOM.csv)
+- [Fotografías del montaje](../docs/photos/README.md)
 
-Next step: physically validate BOM, wire routing, return currents, output polarity, independent overheat cutoff, pressure/airflow interlock and relay status feedback. Only then author schematics/PCB files.
+**No se prevé integrar sensores de paso ni de caudal de aire.**
