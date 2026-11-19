@@ -1,0 +1,20 @@
+cantidad,componente,modelo_o_valor,funcion,estado,notas
+1,Estación base,Hony 850,Chasis y bomba,Instalado / reportado,Bomba diafragma original
+1,Controlador,Arduino Nano ATmega328P 16MHz,Control PID y UI,Instalado / reportado,Optiboot reportado
+1,Pantalla,LCD 16x2 con PCF8574 I2C,Interfaz,Instalado / reportado,hd44780 I2Cexp
+2,Encoder con pulsador,Rotativo incremental,AIR y TEMP,Instalado / reportado,Pines en pinout CSV
+1,Sensor temperatura,Termocupla K,Medición RAW,Instalado / reportado,Posición modificada cerca del aire
+1,Conversor termocupla,MAX6675,Interfaz digital K,Instalado / reportado,10uF +100nF de desacoplo propuestos
+1,Detector cruces,H11AA1,Sincronización de red,Instalado / reportado,Resistencias de entrada deben verificarse por calentamiento
+1,Optotriac calefactor,MOC3083,Disparo red calefactor,Instalado / reportado,Red gate exacta por verificar
+1,TRIAC calefactor,BTA12-600B,Conmutación calefactor,Instalado / reportado,Reemplazo tras cortocircuito anterior
+1,Optotriac bomba,MOC3023,Disparo por fase,Instalado / reportado,Resistencias gate por verificar
+1,TRIAC bomba,Modelo exacto no confirmado,Control bomba,Por confirmar,No sustituir sin revisar corriente y tensión
+1,Relé calefactor,Omron G5Q-1A4 DC5V,Corte en etapa calefactor,Reportado,Terminales y estado físico del contacto NO por validar
+1,Transistor driver,BC337,Comando bobina relé,Reportado,Resistencia base y diodo flyback por confirmar
+1,Calefactor,Yihua 8786D aprox 74.9 ohm,Fuente de calor,Instalado / reportado,~646 W calculados a 220 VAC
+1,Microswitch,Stand / mango,Detección mango apoyado,Instalado / reportado,Entrada D7 HIGH apoyado
+1,Buzzer,5 V,Advertencia audible,Instalado / reportado,Driver si corresponde por confirmar
+1,Fuente lógica,5 V aislada,Alimentación Nano y sensores,Instalado / reportado,Aislamiento de red debe inspeccionarse
+1,Fusible / corte térmico,Valores no confirmados,Protección independiente,Por verificar,No atribuir un dispositivo no inspeccionado
+Varios,Resistores / capacitor snubber,Valores exactos no confirmados,Etapas de potencia,Por confirmar,La documentación no reemplaza diseño de potencia

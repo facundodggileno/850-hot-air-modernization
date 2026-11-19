@@ -1,57 +1,77 @@
-# Hony 850 Pro — 850 Hot Air Modernization
+# Hony 850 Pro
 
-**An experimental open-source retrofit for 850-style hot-air rework stations.** The reference prototype is a Hony 850 with an Arduino Nano ATmega328P. The long-term goal is an affordable, documented, serviceable controller; the current priority is to make the Nano implementation reliable **before** considering Mega 2560 or ESP32-S3.
+**Modernización digital de una estación de aire caliente Hony 850 con Arduino Nano, control PID y documentación del prototipo real.**
 
-**Status (2026-11-12): LAB / NOT SAFE FOR GENERAL USE.** Firmware V1.3.15 is an investigation snapshot, **not a verified stable release**. A serious unresolved issue is that the interface may indicate commanded airflow even when the pump is not physically moving air. Unstable MAX6675 samples and high-temperature excursions have also been observed. Do not power the 650 W heater for unattended testing or rely on software as the only safety barrier.
+[English](README.en.md) · [Construcción y verificación](docs/BUILD_ES.md) · [Esquema eléctrico V2.0.5](hardware/Hony850Pro_Esquematico_Conexiones_Completas_V2_0_5.pdf) · [Conexiones](hardware/WIRING_ES.md) · [Componentes](bom/BOM.csv) · [Firmware](firmware/current/Hony850Pro_Nano_Modular_v2_0_5) · [Historial](CHANGELOG.md)
 
-[Documentación en español](README.es.md) · [BOM](BOM.md) · [Architecture](docs/architecture.md) · [Safety](docs/safety.md) · [Known issues](docs/known-issues.md) · [Test results](docs/tests-and-results.md) · [Roadmap](docs/roadmap.md)
+<p align="center"><a href="docs/photos/prototype-front.jpg"><img src="docs/photos/prototype-front.jpg" width="320" alt="Hony 850 Pro: prototipo real con LCD frontal" /></a></p>
+<p align="center"><sub>Fotografía del montaje real. Más imágenes en <a href="docs/photos/README.md">galería</a>.</sub></p>
 
-## Reference prototype (as built / reported)
+> [!WARNING]
+> **PROTOTIPO EXPERIMENTAL. NO ES UN EQUIPO CERTIFICADO.** Hay tensión de red de 220 V y un calefactor de aproximadamente 650 W. El firmware V2.0.5 todavía no está validado integralmente en el banco. No interpretar diagramas funcionales ni simulaciones como prueba de aislamiento, corte físico ni protección contra incendios. Consultar [seguridad y límites](docs/safety.md) antes de trabajar con cualquier parte de potencia.
 
-- **Base:** Hony 850 station, original diaphragm-style air pump and existing enclosure.
-- **Heater:** replacement Yihua 8786D-style 220 VAC element, approximately 650 W, approximately 75 ohms measured; replaces the failed ~250 W original heater. This is a modified combination, not the original product rating.
-- **Control:** 5 V Arduino Nano ATmega328P, updated bootloader (Optiboot reported).
-- **Temperature:** K-type thermocouple in the handpiece and MAX6675 breakout; VCC reconnected to 5 V. Sensor was moved ~5 mm toward airflow. There are copper-wire sections/splices in the thermocouple run.
-- **UI:** 16x2 I2C LCD (PCF8574/HW-61 class), two rotary encoders and buttons, stand microswitch.
-- **Power switching:** heater MOC3083 zero-cross optotriac + BTA12-600B; pump MOC3023 random-phase optotriac + triac driven with zero-cross/Timer1; separate relay output controlled through BC337. Actual wiring, relay contacts and fail-safe behavior still require physical verification.
-- **Zero-cross:** H11AA1 detector presently used; excessive component heating has been reported. A replacement detector is **proposed, not installed**.
+**Estado al 19-11-2026:** la versión **V2.0.2 fue probada físicamente en funcionamiento normal**; la **V2.0.5 es la última revisión de código**, con pruebas lógicas de escritorio y cambios de interfaz/autotune **pendientes de validación física integral**. Esta publicación documenta lo realizado y lo que aún debe verificarse; no es una versión comercial segura.
 
-## Firmware snapshots
+## Qué construí
 
-- [V1.3.15 — current diagnostic branch](firmware/lab/Hony850Pro_V1_3_15_LAB_REPROMOD_SAFE_FLOW3S.ino): SAFE latch, 3 s airflow-change pause, live PID, watchdog, self-test; unresolved pump / temperature fault.
-- [V1.3.12 — comparison diagnostic](firmware/lab/Hony850Pro_V1_3_12_LAB_DIAG_SLIM_NANO.ino): smaller Nano test branch, useful to compare earlier fault behavior.
-- [V1.2.6 — historical reference](firmware/reference/Hony850Pro_V1_2_6_YIHUA_SAFE_COOL68.ino): earlier implementation, **not** a validated safety fallback.
-- [Isolated pump diagnostic](firmware/diagnostics/Hony850Pro_PUMP_ISOLATED_DIAG_V1.ino): exercises pump commands with heater control outputs kept low; the heater must still be **physically disconnected** before tests.
+Convertí mi Hony 850 analógica en una estación de aire caliente con regulación digital de temperatura, control de la bomba original, pantalla LCD, dos encoders, sonda termopar K, PID y protecciones de software. Mantengo el gabinete y la bomba de diafragma y adapté un calefactor cerámico Yihua 8786D de ~74,9 Ω (potencia nominal calculada ~646 W a 220 V).
 
-See [firmware notes](firmware/README.md) for build and version status. No AVR toolchain or physical verification was completed during this documentation update.
+| Subsistema | Implementación documentada |
+|---|---|
+| Control | Arduino Nano ATmega328P, 5 V / 16 MHz |
+| Pantalla | LCD 16×2 I²C PCF8574, botones y encoders AIR/TEMP |
+| Temperatura | Termocupla tipo K + MAX6675 |
+| Sincronización | H11AA1 → interrupción D2 |
+| Calefactor | MOC3083 + BTA12-600B + relé 5 V (mando D4/D5) |
+| Bomba | Diafragma original, MOC3023 + TRIAC, disparo D3/Timer1 |
+| Stand | Microswitch para mango apoyado (D7) |
+| Firmware | V2.0.5 modular: PID, EEPROM, autotune 3 ciclos, watchdog, preflujo y cooldown |
 
-## What the prototype currently does
+> **Decisión de diseño definitiva:** el proyecto **no incorpora ni incorporará sensores de caudal o de paso de aire**. `AIR %` es únicamente una consigna de accionamiento de la bomba, **no una lectura de flujo físico**. No se presenta esa consigna como protección contra pérdida de aire. Las revisiones futuras se centran en calibración, robustez del control y seguridad térmica y eléctrica independiente.
 
-PID heater control; programmable airflow; display, two encoders and stand sensing; automatic cooldown; resume from cooldown; 3-second interruption/re-arm when changing airflow; MAX6675 validity checks; temperature-based fault conditions; 500 ms AVR watchdog; zero-cross heartbeat; startup model tests (12,288 synthetic cases) and Timer1 pulse counters.
+## Cómo reproducir el proyecto
 
-These features are **software claims**, not a guarantee that the connected actuator performed them. In particular, the variable historically logged as 'airActual' is **commanded airflow**, not a measured flow.
+1. Leer la [guía de seguridad](docs/safety.md) y el [alcance del esquema](hardware/WIRING_ES.md): las partes de 220 V requieren verificación competente antes de cablear.
+2. Revisar la [BOM](bom/BOM.csv) y las [fotografías del montaje real](docs/photos/README.md); las piezas y valores no confirmados están identificados y **no deben completarse por suposición**.
+3. Consultar el [esquema V2.0.5 de 12 hojas](hardware/Hony850Pro_Esquematico_Conexiones_Completas_V2_0_5.pdf), el [pinout CSV](hardware/pinout-reference.csv) y las [conexiones de baja tensión](hardware/WIRING_ES.md).
+4. Abrir el archivo `.ino` dentro de la [carpeta de firmware completa](firmware/current/Hony850Pro_Nano_Modular_v2_0_5) usando Arduino IDE. No separar el `.ino` de los `.cpp`/`.h`.
+5. Seleccionar Nano ATmega328P a 16 MHz. Instalar `hd44780` de Bill Perry y biblioteca `MAX6675` compatible; `Wire` y `EEPROM` vienen con el core AVR. Ver [guía del firmware](firmware/README.md).
+6. Comprobar **primero únicamente la lógica a 5 V con la potencia calefactora físicamente desconectada**: LCD, controles, sensor, stand y autodiagnósticos. No aplicar 220 V como primer test.
+7. Seguir [puesta en marcha y checklist](docs/COMMISSIONING_ES.md). No declarar segura una reconstrucción sin revisar protecciones físicas, puesta a tierra, aislamiento y desconexión efectiva del calefactor.
 
-## Development strategy
+Las instrucciones proporcionan la arquitectura, los pines, el firmware y evidencias existentes, pero **no un procedimiento de cableado de 220 V listo para ejecutar sin revisión**. Se deben medir o confirmar las resistencias de disparo, configuración de la red CA, protección contra sobretemperatura, relé y conexiones no determinadas.
 
-1. Establish real pump airflow and power-stage behavior at 20–100%; reproduce bugs safely with the heater supply disconnected.
-2. Fix the existing Nano state machine, sampling, I2C resilience, and hardware/software fault distinction.
-3. Add and validate **independent airflow and thermal protection** before calling any heater-enabled build safe.
-4. Measure complete electrical characteristics, freeze BOM, and **only then publish the schematic/circuit diagram**.
-5. Consider an ESP32-S3 port after the Nano design reaches a reproducible and characterized baseline.
+## Vista general
 
-## Repository map
+[![Mapa funcional de la estación](docs/diagrams/system-overview-v2.0.5.jpg)](hardware/Hony850Pro_Esquematico_Conexiones_Completas_V2_0_5.pdf)
 
-- BOM.md — parts, evidence/status and unknowns.
-- docs/ — architecture, safety, known issues, measurements, tests, roadmap and decisions.
-- firmware/ — exact lab snapshots and isolated diagnostics.
-- tests/logs/ — dated captures containing the observed faults.
-- hardware/ — hardware notes and pin assignment; **no circuit schematic yet**.
-- mechanical/ — future mechanical assets.
+[Ver las 12 hojas completas del esquema](hardware/Hony850Pro_Esquematico_Conexiones_Completas_V2_0_5.pdf) · [Asignación de pines](hardware/pinout-reference.csv)
 
-## Safety and licensing
+## Documentación y archivos
 
-**Mains voltage and a high-power heater can cause electric shock, burns and fire.** This is a development record, not a wiring guide, reference design or certified product. A software command to switch off a TRIAC or relay does not prove physical disconnection. The project needs independent flow detection and fail-safe heater disconnection.
+| Sección | Contenido |
+|---|---|
+| [firmware/current](firmware/current/Hony850Pro_Nano_Modular_v2_0_5) | **25 archivos originales V2.0.5**; código modular y pruebas descritas |
+| [hardware](hardware) | Esquema V2.0.5, cableado y pinout, con grado de verificación |
+| [bom](bom/BOM.csv) | Lista de materiales con instalado / reportado / por confirmar |
+| [docs/BUILD_ES.md](docs/BUILD_ES.md) | Descripción de la construcción, sin inventar valores de red |
+| [docs/COMMISSIONING_ES.md](docs/COMMISSIONING_ES.md) | Checklist de diagnóstico y validación |
+| [docs/photos](docs/photos/README.md) | Fotografías reales de resistencia, interior y estación |
+| [docs/academic](docs/academic) | Carpeta de campo y presentación final (editables y PDF) |
+| [docs/tests-and-results.md](docs/tests-and-results.md) | Resultados declarados, límites de evidencia, pruebas pendientes |
+| [docs/thermal-calibration.md](docs/thermal-calibration.md) | Factor 0,68, PID y mediciones de referencia |
+| [docs/roadmap.md](docs/roadmap.md) | Mejoras futuras **sin sensores de caudal** |
+| [CHANGELOG.md](CHANGELOG.md) | Hitos y versiones históricas |
 
-Repository license is not yet selected. Do not assume a license for source redistribution beyond what GitHub permits by default.
+## Interfaz actual
 
-Maintained by Facundo D. Gileno / PC Service Computación.
+- **TEMP girar:** temperatura de 80–360 °C corregidos, de 5 en 5 °C.
+- **TEMP toque:** encendido/parada de calefacción y cooldown.
+- **AIR girar:** consigna de bomba 0–100 %; se exige al menos 20 % para habilitar calor.
+- **AIR mantener:** abre menú PID. **AIR toque = volver** y **TEMP toque = aceptar**.
+- **Autotune:** tres ciclos; sólo con calefacción previa apagada y condiciones comprobadas por software. La excepción de stand en autotune **no implica seguridad física validada**.
+- **Cooldown:** hasta 100 °C RAW, con histéresis a 110 °C RAW; no equivale a una temperatura real de boquilla de 100 °C.
+
+## Autoría y licencias
+
+Autor del prototipo: **Facundo David Gileno / PC Service Computación**. La publicación mantiene la trazabilidad de las versiones antiguas y el estado experimental. **No hay una licencia de reutilización aprobada para este repositorio todavía**: que el código sea visible públicamente no significa automáticamente que se concedan todos los permisos de redistribución comercial. [Estado de licencias y contribuciones](CONTRIBUTING.md).
