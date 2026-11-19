@@ -72,6 +72,20 @@ Las instrucciones proporcionan la arquitectura, los pines, el firmware y evidenc
 - **Autotune:** tres ciclos; sólo con calefacción previa apagada y condiciones comprobadas por software. La excepción de stand en autotune **no implica seguridad física validada**.
 - **Cooldown:** hasta 100 °C RAW, con histéresis a 110 °C RAW; no equivale a una temperatura real de boquilla de 100 °C.
 
+## Equipo y colaboradores
+
+El proyecto Hony 850 Pro cuenta con los siguientes colaboradores acreditados:
+
+- **Mauro Iván Redka**
+- **Tomás Saldaña**
+- **José Benjamín Vera**
+- **Luca Vega**
+- **Santiago Giménez**
+
+**Autor del prototipo y responsable del repositorio:** Facundo David Gileno / PC Service Computación.
+
+Los créditos identifican a las personas indicadas por el autor; no asignan responsabilidades técnicas individuales ni implican permisos de acceso a GitHub. Ver [equipo y créditos completos](CONTRIBUTORS.md).
+
 ## Autoría y licencias
 
 Autor del prototipo: **Facundo David Gileno / PC Service Computación**. La publicación mantiene la trazabilidad de las versiones antiguas y el estado experimental. **No hay una licencia de reutilización aprobada para este repositorio todavía**: que el código sea visible públicamente no significa automáticamente que se concedan todos los permisos de redistribución comercial. [Estado de licencias y contribuciones](CONTRIBUTING.md).

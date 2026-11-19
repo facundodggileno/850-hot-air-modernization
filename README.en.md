@@ -29,4 +29,18 @@
 4. Verify the low-voltage controls **with heater mains physically disconnected** before testing any power stage.
 5. Follow the [commissioning checklist](docs/COMMISSIONING_ES.md). Do not assume that firmware timers prove a pump is moving air or that an off command proves the heater was disconnected.
 
+## Project team and contributors
+
+**Prototype author and repository maintainer:** Facundo David Gileno / PC Service Computación.
+
+**Acknowledged project collaborators:**
+
+- **Mauro Iván Redka**
+- **Tomás Saldaña**
+- **José Benjamín Vera**
+- **Luca Vega**
+- **Santiago Giménez**
+
+The credits reflect the names provided by the project author and do not imply individual technical responsibilities or GitHub repository permissions. See [contributors and credits](CONTRIBUTORS.md).
+
 A source license has not yet been selected; this is a public technical record, not an automatic unrestricted re-use grant. Maintainer: **Facundo David Gileno / PC Service Computación**.
