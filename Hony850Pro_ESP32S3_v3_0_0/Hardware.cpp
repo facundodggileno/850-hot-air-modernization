@@ -46,7 +46,7 @@ uint16_t IRAM_ATTR pumpDelay(uint8_t p){
 bool IRAM_ATTR onPumpAlarm(gptimer_handle_t timer,
                           const gptimer_alarm_event_data_t* event,void*){
   portENTER_CRITICAL_ISR(&mux);
-  if(!Cfg::MAINS_OUTPUTS_ENABLED || !timerReady || timerFault){
+  if(!Cfg::PUMP_OUTPUTS_ENABLED || !timerReady || timerFault){
     pumpGate(false);phase=Phase::Idle;
   }else if(phase==Phase::Wait && pumpPct>0 && pumpPct<100){
     pumpGate(true);++gateOn;phase=Phase::Pulse;
@@ -96,7 +96,7 @@ void IRAM_ATTR onZeroCross(){
     heaterGate(heatPairOn);
     heatPairSecond=false;
   }
-  if(Cfg::MAINS_OUTPUTS_ENABLED && timerReady && !timerFault){
+  if(Cfg::PUMP_OUTPUTS_ENABLED && timerReady && !timerFault){
     if(pumpPct>=100){
       phase=Phase::Idle;
       pumpGate(true);
@@ -137,7 +137,7 @@ void begin(){
   digitalWrite(Cfg::PUMP,LOW);digitalWrite(Cfg::BUZZER,LOW);
   pinMode(Cfg::HEATER,OUTPUT);pinMode(Cfg::RELAY,OUTPUT);
   pinMode(Cfg::PUMP,OUTPUT);pinMode(Cfg::BUZZER,OUTPUT);
-  pinMode(Cfg::ZC,INPUT);pinMode(Cfg::STAND,INPUT);
+  pinMode(Cfg::ZC,INPUT_PULLUP);pinMode(Cfg::STAND,INPUT);
   pumpGate(false);heaterGate(false);relayGate(false);
   pumpPct=100;heaterPct=0;heatEnabled=false;heartbeatTripped=false;
   gptimer_config_t conf={};
@@ -156,7 +156,7 @@ void begin(){
   timerFault=!timerReady;
   if(timerReady)attachInterrupt(digitalPinToInterrupt(Cfg::ZC),onZeroCross,RISING);
   // Bomba al 100% durante el arranque solo si la build autoriza potencia.
-  if(timerReady && Cfg::MAINS_OUTPUTS_ENABLED)pumpGate(true);
+  if(timerReady && Cfg::PUMP_OUTPUTS_ENABLED)pumpGate(true);
   heartbeat();
 }
 bool ready(){return timerReady && !timerFault;}
@@ -184,7 +184,7 @@ void pump(uint8_t percent){
   if(percent>100)percent=100;
   portENTER_CRITICAL(&mux);
   pumpPct=percent;
-  if(!Cfg::MAINS_OUTPUTS_ENABLED || !ready()){
+  if(!Cfg::PUMP_OUTPUTS_ENABLED || !ready()){
     pumpGate(false);phase=Phase::Idle;
   }else if(percent==100){
     pumpGate(true);phase=Phase::Idle;
