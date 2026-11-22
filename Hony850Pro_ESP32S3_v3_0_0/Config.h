@@ -6,8 +6,12 @@
 #ifndef HONY_ENABLE_MAINS_OUTPUTS
 #define HONY_ENABLE_MAINS_OUTPUTS 0
 #endif
+// Ensayo: permite SOLO la bomba, sin habilitar calefactor ni relé.
+#ifndef HONY_ENABLE_PUMP_OUTPUT
+#define HONY_ENABLE_PUMP_OUTPUT 1
+#endif
 
-// Hony 850 Pro V3.0.0: GPIO ESP32-S3. Potencia OFF por defecto.
+// Hony 850 Pro V3.0.0: GPIO ESP32-S3. Solo bomba habilitada para ensayo; heater y rele OFF por defecto.
 namespace Cfg {
 constexpr uint8_t ZC=4, PUMP=5, HEATER=6, RELAY=7, BUZZER=8, STAND=9;
 constexpr uint8_t TEMP_CLK=10, TEMP_DT=11, TEMP_SW=12;
@@ -16,6 +20,7 @@ constexpr uint8_t MAX_CS=16, MAX_SO=17, MAX_SCK=18;
 constexpr uint8_t LCD_SDA=1, LCD_SCL=2;
 constexpr uint8_t TC_EXTERNAL_CS=21, TC_PREHEATER_CS=39;
 constexpr bool MAINS_OUTPUTS_ENABLED = (HONY_ENABLE_MAINS_OUTPUTS != 0);
+constexpr bool PUMP_OUTPUTS_ENABLED = (HONY_ENABLE_PUMP_OUTPUT != 0) || MAINS_OUTPUTS_ENABLED;
 
 constexpr float CORRECTION=0.68f;     // C indicados = MAX RAW * 0.68 (calibracion empirica)
 constexpr int TEMP_MIN=80, TEMP_MAX=360, TEMP_STEP=5;
