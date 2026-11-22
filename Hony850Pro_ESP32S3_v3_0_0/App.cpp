@@ -332,6 +332,17 @@ void App::displayTick(uint32_t now){
 void App::serialTick(uint32_t now){
  if((uint32_t)(now-lastSerial_)<Cfg::SERIAL_MS)return;
  lastSerial_=now;
+ // Diagnostico H11AA1: frecuencia real y pulsos descartados en el ultimo intervalo.
+ static uint32_t zcPreviousMs=0, zcPreviousEdges=0, zcPreviousRejected=0;
+ const Hardware::Counters zc=Hardware::counters();
+ const uint32_t zcIntervalMs=zcPreviousMs ? (uint32_t)(now-zcPreviousMs) : Cfg::SERIAL_MS;
+ const float zcPulsesPerSec=zcIntervalMs ?
+      (float)(zc.edges-zcPreviousEdges)*1000.0f/(float)zcIntervalMs : 0.0f;
+ Serial.printf("ZC GPIO4=%d PULSOS/s=%.1f RECHAZADOS=%lu OK=%d\n",
+     digitalRead(Cfg::ZC),zcPulsesPerSec,
+     (unsigned long)(zc.rejected-zcPreviousRejected),
+     Hardware::zcHealthy()?1:0);
+ zcPreviousMs=now;zcPreviousEdges=zc.edges;zcPreviousRejected=zc.rejected;
  const SensorSample& s=thermal_.sample();
  Serial.print(now);Serial.print(',');
  Serial.print(s.raw,1);Serial.print(',');
