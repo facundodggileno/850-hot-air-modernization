@@ -25,7 +25,9 @@ class Display {
   bool ready()const{return ready_;}
   void render(const Screen& s);
  private:
-  hd44780_I2Cexp lcd_;
+  // PCF8574T P0 RS, P2 E, P4-7 D4-7, P3 backlight. NO R/W.
+  // LCD RW fijado fisicamente a GND. No hacer autodeteccion de R/W.
+  hd44780_I2Cexp lcd_{0x27, I2Cexp_PCF8574, 0, 2, 4, 5, 6, 7, 3, HIGH};
   bool ready_=false;
   void line(uint8_t r,const char* str);
   void rawLine(char* dst,const SensorSample& s,bool count);

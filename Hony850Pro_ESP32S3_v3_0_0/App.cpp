@@ -1,32 +1,11 @@
 #include "App.h"
-#include <avr/io.h>
-#include <avr/wdt.h>
-#include <avr/pgmspace.h>
+#include <Arduino.h>
+#include <Wire.h>
 #include <math.h>
-
-// Simbolos provistos por avr-libc/el linker AVR, con enlace C global.
-// NO declararlos dentro de namespace ni dentro de freeRam():
-// el linker buscaria nombres C++ como (anonymous namespace)::__brkval.
-#ifndef HONY_HOST_TEST
-extern "C" {
-  extern char __heap_start;
-  extern char *__brkval;
-}
-#endif
-
 namespace {
 int clampInt(int x,int a,int b){return x<a?a:(x>b?b:x);}
-int freeRam(){
-#ifdef HONY_HOST_TEST
-  return 1024;
-#else
-  char stackMarker;
-  const char* heapEnd = __brkval ? __brkval : &__heap_start;
-  return (int)((intptr_t)&stackMarker - (intptr_t)heapEnd);
-#endif
+int freeRam(){return (int)ESP.getFreeHeap();}
 }
-}
-
 App::App():gains_({1.994f,0.168f,1.707f}),lastTuneResult_(TuneStatus::Idle),pidFromEEPROM_(false),ramOK_(true),
  fault_(Fault::None),view_(View::Normal),setpoint_(250),air_(100),lastAir_(100),
  tuneSet_(250),tuneAir_(100),heatRequest_(false),manualPump_(true),
@@ -37,25 +16,24 @@ App::App():gains_({1.994f,0.168f,1.707f}),lastTuneResult_(TuneStatus::Idle),pidF
 void App::chirp(unsigned f,unsigned d){tone(Cfg::BUZZER,f,d);}
 void App::begin(){
  Hardware::begin();controls_.begin();
- // WDT de setup mas holgado por inicializacion I2C.
- wdt_enable(WDTO_2S);
+ // Pantalla con PCF8574T a 3.3V y RW LCD conectado a GND.
  Serial.begin(115200);
+ Wire.begin(Cfg::LCD_SDA,Cfg::LCD_SCL,100000);
  bool lcdOK=display_.begin();
- wdt_reset();
  pidFromEEPROM_=PidStore::load(gains_);
  pid_.setGains(gains_);
  stand_=digitalRead(Cfg::STAND)==HIGH;
- ramOK_=freeRam()>=190;
- const bool wdtBoot=(Hardware::resetReason() & _BV(WDRF))!=0;
+ ramOK_=freeRam()>=8192;
+ const bool wdtBoot=Hardware::resetReason()!=0;
  boot_.begin(millis(),lcdOK,ramOK_,wdtBoot);
  if(wdtBoot){fault_=Fault::Watchdog;view_=View::Fault;}
  safety_.reset(millis());
  Hardware::heatOff();Hardware::pump(100);
  Hardware::watchdogStart();
- Serial.println(F("HONY 850 PRO MODULAR V2.0.5 | NANO 328P"));
+ Serial.println(F("HONY 850 PRO MODULAR V3.0.0 | ESP32-S3"));
  Serial.print(F("RESET_FLAGS="));Serial.println(Hardware::resetReason(),HEX);
  Serial.print(F("SRAM_FREE="));Serial.println(freeRam());
- Serial.print(F("PID_EEPROM="));Serial.println(pidFromEEPROM_?1:0);
+ Serial.print(F("PID_NVS="));Serial.println(pidFromEEPROM_?1:0);
  Serial.println(F("ms,raw,corr,sp,air,pump,duty,heat,arm,fault,zc,boot,ram,tune"));
  chirp(2000,60);
 }
@@ -85,11 +63,9 @@ void App::startFlow(uint32_t now){
  arm_=ArmStage::FullFlow;armSince_=now;phaseSince_=now;gateWindowSince_=now;
  safety_.reset(now);pid_.reset();
 }
-bool App::standPermittedForTune() const{
-  // El switch solo se exceptua cuando el autotune esta activo y fue iniciado
-  // explicitamente en el soporte. La calefaccion manual NUNCA tiene excepcion.
-  return standTuneOverride_ && heatRequest_ && view_==View::Tuning &&
-         tune_.status()==TuneStatus::Running;
+bool App::standPermittedForTune() const {
+  // En V3 el mango apoyado siempre deshabilita la calefaccion.
+  return false;
 }
 void App::flowTick(uint32_t now){
   if(!heatRequest_ || fault_!=Fault::None || !boot_.done() ||
@@ -120,7 +96,8 @@ void App::flowTick(uint32_t now){
  }
 }
 void App::beginHeat(uint32_t now){
- if(!boot_.done() || fault_!=Fault::None || !ramOK_ || !display_.ready() ||
+ if(!Cfg::MAINS_OUTPUTS_ENABLED || !Hardware::ready() ||
+    !boot_.done() || fault_!=Fault::None || !ramOK_ || !display_.ready() ||
     !thermal_.fresh(now) || stand_ || air_<Cfg::AIR_MIN_HEAT ||
     !Hardware::zcHealthy() || thermal_.sample().raw>=Cfg::RAW_HARD_LIMIT){
    chirp(400,160);Serial.println(F("START_DENIED: SENSOR/ZC/STAND/AIR/LCD/RAM/FAULT"));return;
@@ -129,7 +106,8 @@ void App::beginHeat(uint32_t now){
  startFlow(now);chirp(2300,70);
 }
 void App::beginTune(uint32_t now){
-  if(heatRequest_ || !boot_.done() || fault_!=Fault::None || !thermal_.fresh(now) ||
+  if(!Cfg::MAINS_OUTPUTS_ENABLED || !Hardware::ready() || stand_ ||
+     heatRequest_ || !boot_.done() || fault_!=Fault::None || !thermal_.fresh(now) ||
     !display_.ready() || !ramOK_ || !Hardware::zcHealthy() ||
     tuneAir_<Cfg::AIR_MIN_HEAT || thermal_.sample().raw>=Cfg::RAW_HARD_LIMIT){
     chirp(420,200);return;
@@ -138,7 +116,7 @@ void App::beginTune(uint32_t now){
   cooldown_=false;heatRequest_=true;manualPump_=true;
   // El unico permiso excepcional de stand se concede en este instante
   // y se revoca en finishTune(), cooldownStart() y trip().
-  standTuneOverride_=stand_;
+  standTuneOverride_=false;
   tune_.begin(Cfg::rawTarget(setpoint_),(uint8_t)air_,now);
  lastTuneResult_=TuneStatus::Running;
  view_=View::Tuning;startFlow(now);chirp(2100,90);
@@ -280,7 +258,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
  if(e.airLong){view_=View::PidMenu;pidMenuSelection_=0;}
 }
 bool App::allowHeat(uint32_t now)const{
-  return boot_.done() && fault_==Fault::None && display_.ready() && ramOK_ &&
+  return Cfg::MAINS_OUTPUTS_ENABLED && Hardware::ready() && boot_.done() && fault_==Fault::None && display_.ready() && ramOK_ &&
         heatRequest_ && arm_==ArmStage::Ready &&
         (!stand_ || standPermittedForTune()) && !bothWasDown_ && air_>=Cfg::AIR_MIN_HEAT &&
         thermal_.fresh(now) && Hardware::zcHealthy() &&

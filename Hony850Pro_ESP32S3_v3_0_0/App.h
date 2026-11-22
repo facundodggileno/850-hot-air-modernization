@@ -31,7 +31,7 @@ class App {
   bool heatRequest_,manualPump_,cooldown_,stand_,bothWasDown_;
   uint8_t duty_,pidPage_,pidMenuSelection_;
   bool pidViewFromMenu_;
-  bool standTuneOverride_; // Excepcion solo durante autotune activo; nunca en HEAT normal.
+  bool standTuneOverride_; // Vestigio de V2: V3 nunca habilita calor con stand.
   ArmStage arm_;
   uint32_t armSince_,phaseSince_,gateWindowSince_,
            lastLCD_,lastSerial_,lastPID_,lastTune_,lastFaultAt_;

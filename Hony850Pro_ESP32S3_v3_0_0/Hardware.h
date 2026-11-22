@@ -2,11 +2,12 @@
 #include "Config.h"
 #include <stdint.h>
 
-// Hardware de tiempo real: unico dueno de los pines de potencia y Timer1.
+// Hardware de tiempo real: GPIO de potencia y GPTimer ESP32-S3.
 // Todo corte de calor pasa por heatOff(). No hay escritura directa desde el PID/UI.
 namespace Hardware {
 struct Counters {uint32_t edges, rejected, gateOn, gateOff;};
 void begin();
+bool ready(); // GPTimer configurado, sin fallo
 void heartbeat();
 void heatOff();
 void heatDuty(uint8_t duty);    // duty 0..100; rele ON solo si duty > 0
