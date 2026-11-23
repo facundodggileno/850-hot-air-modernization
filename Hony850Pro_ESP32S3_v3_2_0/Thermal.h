@@ -17,7 +17,7 @@ class Thermal {
  private:
   MAX6675 max_;
   SensorSample s_;
-  uint32_t lastAt_,sampleSequence_,lastSamplePeriodMs_,readDurationUs_;
+  uint32_t lastAt_,lastReadCompletedAtMs_,sampleSequence_,lastSamplePeriodMs_,readDurationUs_;
   float previous1_,previous2_;
   bool spikeUp_,spikeDown_;
 };
