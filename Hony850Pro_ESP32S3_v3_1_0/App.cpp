@@ -90,7 +90,8 @@ void App::flowTick(uint32_t now){
    if(air_<100){
      const Hardware::Counters c=Hardware::counters();
      const uint32_t on=c.gateOn-gateBaseline_.gateOn,off=c.gateOff-gateBaseline_.gateOff;
-     if(on<70 || off<70 || (on>off?on-off:off-on)>4){trip(Fault::PumpGate,now);return;}
+     if(on<HONY_PUMP_GATE_TEST_MIN_EVENTS || off<HONY_PUMP_GATE_TEST_MIN_EVENTS ||
+        (on>off?on-off:off-on)>HONY_PUMP_GATE_MAX_IMBALANCE){trip(Fault::PumpGate,now);return;}
    }
    arm_=ArmStage::Settle;
  }else if(arm_==ArmStage::Settle && elapsed>=Cfg::PREFLOW_MS){
@@ -100,7 +101,8 @@ void App::flowTick(uint32_t now){
  }else if(arm_==ArmStage::Ready && air_<100 && (uint32_t)(now-gateWindowSince_)>=500UL){
    const Hardware::Counters c=Hardware::counters();
    const uint32_t on=c.gateOn-gateBaseline_.gateOn,off=c.gateOff-gateBaseline_.gateOff;
-   if(on<35 || off<35 || (on>off?on-off:off-on)>4){trip(Fault::PumpGate,now);return;}
+   if(on<HONY_PUMP_GATE_MONITOR_MIN_EVENTS || off<HONY_PUMP_GATE_MONITOR_MIN_EVENTS ||
+      (on>off?on-off:off-on)>HONY_PUMP_GATE_MAX_IMBALANCE){trip(Fault::PumpGate,now);return;}
    gateBaseline_=c;gateWindowSince_=now;
  }
 }
