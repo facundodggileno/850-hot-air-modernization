@@ -1,12 +1,21 @@
 #include "Thermal.h"
 #include <math.h>
 Thermal::Thermal():max_(Cfg::MAX_SCK,Cfg::MAX_CS,Cfg::MAX_SO),
-  lastAt_(0),previous1_(NAN),previous2_(NAN),spikeUp_(false),spikeDown_(false){}
+  lastAt_(0),sampleSequence_(0),lastSamplePeriodMs_(0),readDurationUs_(0),previous1_(NAN),previous2_(NAN),spikeUp_(false),spikeDown_(false){}
 void Thermal::tick(uint32_t now){
+  // MAX6675 requiere hasta 220ms por conversion. Mantener 250ms
+  // entre INICIOS de lectura, sin delay() ni bucles de espera.
   if(lastAt_ && (uint32_t)(now-lastAt_)<Cfg::TC_SAMPLE_MS)return;
+  lastSamplePeriodMs_=lastAt_?(uint32_t)(now-lastAt_):0;
   const float dt=lastAt_?(float)(now-lastAt_)/1000.0f:0.25f;
   lastAt_=now;
+  const uint32_t startUs=micros();
   const float t=max_.readCelsius();
+  readDurationUs_=(uint32_t)(micros()-startUs);
+  ++sampleSequence_;
+  // El estado anterior de deteccion de picos nunca debe contaminar
+  // una lectura invalida o nueva conversion.
+  spikeUp_=false;spikeDown_=false;
   const bool good=(t>=HONY_INTERNAL_SENSOR_VALID_MIN_C && t<=HONY_INTERNAL_SENSOR_VALID_MAX_C); // NaN/INF tambien quedan rechazados.
   const float prev=s_.lastGood;
   s_.raw=t;s_.lastAccepted=good;
@@ -15,7 +24,6 @@ void Thermal::tick(uint32_t now){
     s_.outletEst=NAN;s_.outletControlled=NAN;s_.outletRate=0;
     previous1_=NAN;previous2_=NAN; return;
   }
-  spikeUp_=false;spikeDown_=false;
   if(s_.valid && !isnan(prev) && dt>=0.20f && dt<=0.5f){
     spikeUp_=(t-prev)>HONY_TC_RISE_SPIKE_C;
     spikeDown_=(prev-t)>HONY_TC_DROP_SPIKE_C;
