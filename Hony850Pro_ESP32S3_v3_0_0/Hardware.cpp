@@ -199,9 +199,15 @@ uint8_t dutyCommand(){return heaterPct;}
 uint8_t resetReason(){return resetWasWdt;}
 bool stalled(){return heartbeatTripped||timerFault;}
 bool zcHealthy(){
-  uint32_t stamp;
-  portENTER_CRITICAL(&mux);stamp=lastZcUs;portEXIT_CRITICAL(&mux);
-  return stamp && (uint32_t)(micros()-stamp)<=Cfg::ZC_STALE_US;
+  uint32_t stamp,period;
+  portENTER_CRITICAL(&mux);
+  stamp=lastZcUs;
+  period=zcPeriodUs;
+  portEXIT_CRITICAL(&mux);
+  // La antiguedad sola no alcanza: 50/s o 140/s tambien parecian sanos.
+  // En 50Hz deben llegar dos flancos por ciclo: aproximadamente 10ms.
+  const bool recent=stamp && (uint32_t)(micros()-stamp)<=Cfg::ZC_STALE_US;
+  return recent && period>=8000UL && period<=12000UL;
 }
 uint32_t zcPeriod(){
   uint32_t v;
