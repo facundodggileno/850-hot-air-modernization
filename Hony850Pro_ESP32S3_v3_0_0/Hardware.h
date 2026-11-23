@@ -17,6 +17,7 @@ uint8_t dutyCommand();
 uint8_t resetReason();
 bool stalled();
 bool zcHealthy();
+uint32_t zcPeriod(); // ultimo intervalo ENTRE flancos aceptados, en microsegundos
 Counters counters();
 void watchdogStart();
 void watchdogKick();
