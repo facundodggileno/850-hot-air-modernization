@@ -86,6 +86,6 @@ constexpr uint16_t PUMP_DELAY_20_US=7600, PUMP_DELAY_95_US=3000;
 constexpr uint16_t PUMP_MAX_DELAY_US=9000;
 constexpr uint32_t BUTTON_LONG_MS=1200, BUTTON_DEBOUNCE_MS=35;
 constexpr uint32_t STAND_DEBOUNCE_MS=35, ESTOP_HOLD_MS=120;
-constexpr uint8_t TUNE_CYCLES=3, DEBUG_PAGES=7;
+constexpr uint8_t TUNE_CYCLES=3, DEBUG_PAGES=8;
 
 }
