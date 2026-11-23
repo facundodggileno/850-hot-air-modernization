@@ -1,5 +1,5 @@
 /*
- HONY 850 PRO - ESP32-S3 V3.3.0
+ HONY 850 PRO - ESP32-S3 V3.4.0
  PORT EN PRUEBAS, etapa de potencia bloqueada por defecto.
  LCD1602 5V, PCF8574T 3.3V, R/W LCD a GND.
  SIN sensor de caudal; AIR% solo es consigna a bomba.
