@@ -9,7 +9,8 @@ int freeRam(){return (int)ESP.getFreeHeap();}
 App::App():gains_({2.932f,0.247f,2.510f}),lastTuneResult_(TuneStatus::Idle),pidFromEEPROM_(false),ramOK_(true),
  fault_(Fault::None),view_(View::Normal),setpoint_(250),air_(100),lastAir_(100),
  tuneSet_(250),tuneAir_(100),heatRequest_(false),cooldown_(false),stand_(true),bothWasDown_(false),
- standArmed_(false),channelSaveOK_(false),channelSavedUntil_(0),duty_(0),pidPage_(0),pidMenuSelection_(0),debugPage_(0),diagnosticsAt_(0),
+ standArmed_(false),channelSaveOK_(false),channelSavedUntil_(0),
+ readyBeepArmed_(false),readySinceMs_(0),lastPidSampleSequence_(0),lastPidPeriodMs_(0),duty_(0),pidPage_(0),pidMenuSelection_(0),debugPage_(0),diagnosticsAt_(0),
  diagAcceptedPerSec_(0),diagRejectedPerSec_(0),diagGateOnPerSec_(0),diagGateOffPerSec_(0),
  diagnosticsBaseline_({0,0,0,0}),pidViewFromMenu_(false),standTuneOverride_(false),
  arm_(ArmStage::Idle),armSince_(0),phaseSince_(0),gateWindowSince_(0),
@@ -51,6 +52,7 @@ void App::trip(Fault why,uint32_t now){
  // Cortar potencia ANTES de emitir serial, LCD o audio.
  Hardware::heatOff();duty_=0;heatRequest_=false;arm_=ArmStage::Idle;
  standTuneOverride_=false;
+ readyBeepArmed_=false;readySinceMs_=0;
  fault_=why;view_=View::Fault;lastFaultAt_=now;
  tune_.abort();
  Hardware::pump(100);
@@ -64,12 +66,14 @@ void App::cooldownStart(){
   Hardware::heatOff();duty_=0;heatRequest_=false;arm_=ArmStage::Idle;
   standTuneOverride_=false;
   tune_.abort();cooldown_=true;
+ readyBeepArmed_=false;readySinceMs_=0;
  Hardware::pump(100);pid_.reset();
 }
 void App::startFlow(uint32_t now){
  Hardware::heatOff();duty_=0;
  Hardware::pump(100);
  arm_=ArmStage::FullFlow;armSince_=now;phaseSince_=now;gateWindowSince_=now;
+ lastPidSampleSequence_=thermal_.sequence();lastPID_=0;lastPidPeriodMs_=0;
  safety_.reset(now);pid_.reset();
 }
 bool App::standPermittedForTune() const {
@@ -120,6 +124,7 @@ void App::beginHeat(uint32_t now){
    chirp(400,160);Serial.println(F("START_DENIED: SENSOR/ZC/STAND/AIR/LCD/RAM/FAULT"));return;
  }
  cooldown_=false;heatRequest_=true;
+ readyBeepArmed_=true;readySinceMs_=0;
  startFlow(now);chirp(2300,70);
 }
 void App::beginTune(uint32_t now){
@@ -137,6 +142,7 @@ void App::beginTune(uint32_t now){
   }
   setpoint_=tuneSet_;air_=tuneAir_;lastAir_=air_;
   cooldown_=false;heatRequest_=true;
+  readyBeepArmed_=false;readySinceMs_=0;
   // El unico permiso excepcional de stand se concede en este instante
   // y se revoca en finishTune(), cooldownStart() y trip().
   standTuneOverride_=false;
@@ -285,6 +291,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
  // Main: TEMP/AIR encoders adjust setpoint; botones NO conmutan potencia.
  if(e.tempStep){
    setpoint_=clampInt(setpoint_+e.tempStep*Cfg::TEMP_STEP,Cfg::TEMP_MIN,Cfg::TEMP_MAX);
+   readyBeepArmed_=true;readySinceMs_=0;
    if(heatRequest_ && !Cfg::setpointWithinRawLimit(setpoint_)){
      cooldownStart();
      Serial.println(F("COOLDOWN: CONSIGNA FUERA DE CALIBRACION"));
@@ -321,6 +328,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    const bool committed=channelStore_.select(next);
    const ChannelStore::Preset preset=channelStore_.selectedPreset();
    setpoint_=preset.tempC;air_=preset.air;lastAir_=air_;
+   readyBeepArmed_=true;readySinceMs_=0;
    channelSavedUntil_=0;
    if(heatRequest_){
      if(air_<Cfg::AIR_MIN_HEAT || !Cfg::setpointWithinRawLimit(setpoint_))
@@ -402,24 +410,53 @@ void App::controlTick(uint32_t now){
  if(fault_!=Fault::None || !boot_.done()){
    Hardware::heatOff();duty_=0;return;
  }
- const SafetyInput si={heatRequest_,allowHeat(now),view_==View::Tuning,
+ const bool canDrive=allowHeat(now);
+ const SafetyInput si={heatRequest_,canDrive,view_==View::Tuning,
    thermal_.fresh(now),Hardware::zcHealthy(),Hardware::stalled(),
    thermal_.bigRise(),thermal_.bigDrop(),t.raw,t.outletEst,(float)setpoint_,duty_};
  const Fault unsafe=safety_.check(si,now);
  if(unsafe!=Fault::None){trip(unsafe,now);return;}
- if(!allowHeat(now)){
+ if(!canDrive){
    Hardware::heatOff();duty_=0;return;
  }
+ // MAX6675 genera una nueva conversion cada ~250ms: regular UNA vez
+ // por muestra nueva, sin integrar error repetido durante loop() rapido.
+ const uint32_t sequence=thermal_.sequence();
+ if(!sequence || sequence==lastPidSampleSequence_)return;
+ lastPidSampleSequence_=sequence;
+ lastPidPeriodMs_=lastPID_?(uint32_t)(now-lastPID_):0;
+ lastPID_=now;
  if(view_==View::Tuning){
-   if(lastTune_ && (uint32_t)(now-lastTune_)<Cfg::PID_MS)return;
-   lastTune_=now;
    duty_=tune_.tick(t.outletEst,now);
    if(tune_.status()!=TuneStatus::Running){finishTune(now);return;}
  }else{
-   const uint8_t out=pid_.update(t.outletEst,t.outletControlled,t.outletRate,(float)setpoint_,(uint8_t)air_,now);
+   const uint8_t out=pid_.update(
+     t.outletEst,t.outletControlled,t.outletRate,
+     (float)setpoint_,(uint8_t)air_,now);
    if(out!=255)duty_=out;
  }
  Hardware::heatDuty(duty_);
+}
+void App::readyBeepTick(uint32_t now){
+ if(!HONY_READY_BEEP_ENABLED || !readyBeepArmed_)return;
+ // La alarma solo confirma consigna ESTIMADA alcanzada durante calefaccion
+ // REAL y segura; no durante autotune, preflujo, cooldown ni fallos.
+ if(!allowHeat(now) || view_==View::Tuning){
+   readySinceMs_=0;return;
+ }
+ const float est=thermal_.sample().outletEst;
+ if(!isfinite(est) || fabsf(est-(float)setpoint_)>HONY_READY_BAND_C){
+   readySinceMs_=0;return;
+ }
+ if(!readySinceMs_)readySinceMs_=now;
+ if((uint32_t)(now-readySinceMs_)>=HONY_READY_STABLE_MS){
+   readyBeepArmed_=false;
+   readySinceMs_=0;
+   chirp(HONY_READY_BEEP_FREQ_HZ,HONY_READY_BEEP_DURATION_MS);
+   Serial.printf("TEMP_ALCANZADA CH%u EST~%.1f OBJ=%d\n",
+                 (unsigned)(channelStore_.selectedIndex()+1),
+                 est,setpoint_);
+ }
 }
 void App::diagnosticsTick(uint32_t now){
  // Contadores ZC/gate: representan flancos y ordenes, no flujo fisico.
@@ -537,6 +574,7 @@ void App::tick(){
  handleInput(e,now);
  if(heatRequest_)flowTick(now);
  controlTick(now);
+ readyBeepTick(now);
  // WDT heartbeat solo despues de revisar interlocks y salidas.
  Hardware::heartbeat();
  serialCommand(now);
