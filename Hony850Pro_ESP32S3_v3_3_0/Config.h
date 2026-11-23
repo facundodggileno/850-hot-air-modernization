@@ -5,7 +5,7 @@
 #error "Este firmware requiere ESP32-S3 y Arduino-ESP32 3.x."
 #endif
 // ============================================================================
-// HONY 850 PRO ESP32-S3 V3.3.0 - CONFIGURACION PARA EL USUARIO
+// HONY 850 PRO ESP32-S3 V3.4.0 - CONFIGURACION PARA EL USUARIO
 // EDITAR SOLO ESTE BLOQUE PARA CAMBIAR LIMITES/HABILITACIONES.
 // AVISO: la temperatura de salida (~) es ESTIMADA a partir de la sonda interna.
 // Los ensayos externos validan aprox. hasta 300 C, NO hasta 480 C.
@@ -56,6 +56,22 @@
 #define HONY_READY_STABLE_MS               1250UL // Debe sostenerse en banda
 #define HONY_READY_BEEP_FREQ_HZ             2450
 #define HONY_READY_BEEP_DURATION_MS          140
+
+// 4.c FAST HEAT - CALENTAMIENTO INICIAL MAS RAPIDO
+// 1 = acelerar hasta cerca de la consigna; 0 = PID V3.3 conservador.
+// Con AIR=100% ya es posible llegar a duty 100%; la mejora viene de
+// demorar el frenado anticipado, NO de superar la potencia disponible.
+// Se usa solo con suficiente aire; no altera el control del autotune.
+// IMPORTANTE: sobrepasos pueden aumentar; conservar protecciones de abajo.
+#define HONY_FAST_HEAT_ENABLED                 1
+#define HONY_FAST_HEAT_MIN_AIR_PCT            70   // AIR inferior: PID normal
+#define HONY_FAST_HEAT_EXIT_ERROR_C         22.0f // Termina al faltar <=22 C
+#define HONY_FAST_HEAT_BRAKE_START_C        35.0f // Frena solo en la zona final
+#define HONY_FAST_HEAT_LOOKAHEAD_S           0.8f // Antes: 2.0s
+#define HONY_FAST_HEAT_DERIVATIVE_FACTOR     0.35f // Antes: 1.0
+#define HONY_FAST_HEAT_MAX_RISE_CPS         18.0f // Si sube mas rapido, salir FAST
+#define HONY_FAST_HEAT_RAW_HEADROOM_C      100.0f // Salir antes del corte interno
+
 
 // 5. PROTECCIONES TERMICAS (fuera del menu)
 #define HONY_TC_RISE_SPIKE_C               42.0f // Pico interno en una muestra
@@ -111,6 +127,18 @@
 #define HONY_UPDATE_LCD_MS                 150UL // ~6.7Hz max; solo se envian caracteres modificados
 #define HONY_UPDATE_SERIAL_MS             1000UL
 
+#if HONY_FAST_HEAT_MIN_AIR_PCT < HONY_MIN_AIR_TO_RUN || HONY_FAST_HEAT_MIN_AIR_PCT > 100
+#error "FAST_HEAT: aire minimo fuera de rango."
+#endif
+#if HONY_FAST_HEAT_EXIT_ERROR_C <= 0 || HONY_FAST_HEAT_BRAKE_START_C <= HONY_FAST_HEAT_EXIT_ERROR_C
+#error "FAST_HEAT: umbrales de salida/frenado inconsistentes."
+#endif
+#if HONY_FAST_HEAT_DERIVATIVE_FACTOR <= 0 || HONY_FAST_HEAT_DERIVATIVE_FACTOR > 1
+#error "FAST_HEAT: factor derivativo debe ser >0 y <=1."
+#endif
+#if HONY_FAST_HEAT_LOOKAHEAD_S <= 0 || HONY_FAST_HEAT_MAX_RISE_CPS <= 0
+#error "FAST_HEAT: limites de anticipacion y subida deben ser positivos."
+#endif
 #if HONY_SAMPLE_TC_MS < 250UL
 #error "MAX6675: intervalo minimo 250ms entre lecturas completas."
 #endif
