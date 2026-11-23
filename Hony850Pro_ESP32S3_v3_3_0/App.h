@@ -33,7 +33,7 @@ class App {
   bool heatRequest_,cooldown_,stand_,bothWasDown_,standArmed_;
   bool channelSaveOK_;
   uint32_t channelSavedUntil_;
-  bool readyBeepArmed_;
+  bool readyBeepArmed_,fastHeatActive_;
   uint32_t readySinceMs_;
   uint32_t lastPidSampleSequence_;
   uint32_t lastPidPeriodMs_;
