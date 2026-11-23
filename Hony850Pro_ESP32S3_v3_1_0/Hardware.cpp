@@ -207,7 +207,7 @@ bool zcHealthy(){
   // La antiguedad sola no alcanza: 50/s o 140/s tambien parecian sanos.
   // En 50Hz deben llegar dos flancos por ciclo: aproximadamente 10ms.
   const bool recent=stamp && (uint32_t)(micros()-stamp)<=Cfg::ZC_STALE_US;
-  return recent && period>=8000UL && period<=12000UL;
+  return recent && period>=HONY_ZC_PERIOD_MIN_US && period<=HONY_ZC_PERIOD_MAX_US;
 }
 uint32_t zcPeriod(){
   uint32_t v;
@@ -224,7 +224,7 @@ Counters counters(){
 void watchdogStart(){
   if(watchdogRegistered)return;
   esp_task_wdt_config_t cfg={};
-  cfg.timeout_ms=2000;cfg.idle_core_mask=0;cfg.trigger_panic=true;
+  cfg.timeout_ms=HONY_WATCHDOG_TIMEOUT_MS;cfg.idle_core_mask=0;cfg.trigger_panic=true;
   esp_err_t status=esp_task_wdt_init(&cfg);
   if(status==ESP_ERR_INVALID_STATE)
     status=esp_task_wdt_reconfigure(&cfg);
