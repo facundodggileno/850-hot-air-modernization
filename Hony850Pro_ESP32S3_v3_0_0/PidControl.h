@@ -6,7 +6,7 @@ class PidControl {
   void reset();
   void setGains(const Gains& g){gains_=g;reset();}
   Gains gains()const{return gains_;}
-  uint8_t update(float raw,float median,float rate,float targetRaw,uint8_t air,uint32_t now);
+  uint8_t update(float outlet,float smoothed,float rate,float targetOutlet,uint8_t air,uint32_t now);
  private:
   Gains gains_;
   float integral_;
