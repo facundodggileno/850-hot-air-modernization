@@ -179,6 +179,11 @@ void Display::render(const Screen& s){
      snprintf(b,17,"FAST HEAT %3u%%",(unsigned)s.duty);
    else if(s.heatRequest)
      snprintf(b,17,"HEAT %3u%%",(unsigned)s.duty);
+   else if(s.manualHeatOff){
+     // Usuario apago calefactor con TEMP: mantener bomba, modo solo aire.
+     // Si el mango aun esta caliente, prevalece refrigeracion forzada.
+     strcpy(b,s.cooldown?"SOLO AIRE /COOL":"SOLO AIRE");
+   }
    else if(s.cooldown)strcpy(b,"COOLDOWN AIR100");
    else if(!Cfg::setpointWithinRawLimit(s.setpoint))
      strcpy(b,"TEMP NO CALIBR");
