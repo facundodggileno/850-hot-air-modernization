@@ -5,7 +5,7 @@
 #error "Este firmware requiere ESP32-S3 y Arduino-ESP32 3.x."
 #endif
 // ============================================================================
-// HONY 850 PRO ESP32-S3 V3.4.0 - CONFIGURACION PARA EL USUARIO
+// HONY 850 PRO ESP32-S3 V3.4.1 - CONFIGURACION PARA EL USUARIO
 // EDITAR SOLO ESTE BLOQUE PARA CAMBIAR LIMITES/HABILITACIONES.
 // AVISO: la temperatura de salida (~) es ESTIMADA a partir de la sonda interna.
 // Los ensayos externos validan aprox. hasta 300 C, NO hasta 480 C.
@@ -25,10 +25,10 @@
 
 // 2. LIMITES DEL SELECTOR Y TEMPERATURA (C)
 #define HONY_USER_MAX_TEMP_C               480
-#define HONY_CALIBRATED_MAX_OUTLET_C        300  // Maximo respaldado por termocupla externa
-#define HONY_INTERNAL_HARD_C              595.0f // Corte de la sonda interna (proteccion)
+#define HONY_CALIBRATED_MAX_OUTLET_C        480  // Ensayo externo reportado hasta 480 C; curva interna aun provisional
+#define HONY_INTERNAL_HARD_C              750.0f // Corte interno configurado por usuario; requiere validacion de margen termico
 #define HONY_INTERNAL_HEADROOM_C          35.0f  // Margen hasta el corte interno
-#define HONY_INTERNAL_SENSOR_VALID_MAX_C 700.0f  // Lecturas superiores se invalidan
+#define HONY_INTERNAL_SENSOR_VALID_MAX_C 800.0f  // Rango valido del MAX6675, independiente del corte a 750 C
 #define HONY_INTERNAL_SENSOR_VALID_MIN_C   5.0f
 // IMPORTANTE: para alcanzar 480 C de salida estimada no basta con tocar USER_MAX.
 // La calibracion, la resistencia, mango y protecciones requieren verificacion real.
