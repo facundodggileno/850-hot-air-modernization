@@ -37,6 +37,9 @@ class Display {
   // LCD RW fijado fisicamente a GND. No hacer autodeteccion de R/W.
   hd44780_I2Cexp lcd_{0x27, I2Cexp_PCF8574, 0, 2, 4, 5, 6, 7, 3, HIGH};
   bool ready_=false;
+  // Cache de 16 caracteres por fila. No depende del pin R/W ni de lectura de LCD.
+  char lastPrinted_[2][17]={{0},{0}};
+  bool rowValid_[2]={false,false};
   void line(uint8_t r,const char* str);
   void tempLine(char* dst,const SensorSample& s,bool count);
 };
