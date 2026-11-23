@@ -1,17 +1,20 @@
 #include "Thermal.h"
 #include <math.h>
 Thermal::Thermal():max_(Cfg::MAX_SCK,Cfg::MAX_CS,Cfg::MAX_SO),
-  lastAt_(0),sampleSequence_(0),lastSamplePeriodMs_(0),readDurationUs_(0),previous1_(NAN),previous2_(NAN),spikeUp_(false),spikeDown_(false){}
+  lastAt_(0),lastReadCompletedAtMs_(0),sampleSequence_(0),lastSamplePeriodMs_(0),readDurationUs_(0),previous1_(NAN),previous2_(NAN),spikeUp_(false),spikeDown_(false){}
 void Thermal::tick(uint32_t now){
-  // MAX6675 requiere hasta 220ms por conversion. Mantener 250ms
-  // entre INICIOS de lectura, sin delay() ni bucles de espera.
-  if(lastAt_ && (uint32_t)(now-lastAt_)<Cfg::TC_SAMPLE_MS)return;
+  // MAX6675 requiere hasta 220ms por conversion. Su conversion nueva
+  // comienza al liberar CS: espaciar desde FIN de lectura anterior.
+  // No usar delay() ni leer varias veces el mismo dato.
+  if(lastReadCompletedAtMs_ &&
+     (uint32_t)(now-lastReadCompletedAtMs_)<Cfg::TC_SAMPLE_MS)return;
   lastSamplePeriodMs_=lastAt_?(uint32_t)(now-lastAt_):0;
   const float dt=lastAt_?(float)(now-lastAt_)/1000.0f:0.25f;
   lastAt_=now;
   const uint32_t startUs=micros();
   const float t=max_.readCelsius();
   readDurationUs_=(uint32_t)(micros()-startUs);
+  lastReadCompletedAtMs_=millis();
   ++sampleSequence_;
   // El estado anterior de deteccion de picos nunca debe contaminar
   // una lectura invalida o nueva conversion.
