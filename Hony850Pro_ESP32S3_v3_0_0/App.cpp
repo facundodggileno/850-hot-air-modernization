@@ -9,7 +9,9 @@ int freeRam(){return (int)ESP.getFreeHeap();}
 App::App():gains_({2.932f,0.247f,2.510f}),lastTuneResult_(TuneStatus::Idle),pidFromEEPROM_(false),ramOK_(true),
  fault_(Fault::None),view_(View::Normal),setpoint_(250),air_(100),lastAir_(100),
  tuneSet_(250),tuneAir_(100),heatRequest_(false),manualPump_(true),
- cooldown_(false),stand_(true),bothWasDown_(false),duty_(0),pidPage_(0),pidMenuSelection_(0),pidViewFromMenu_(false),standTuneOverride_(false),
+ cooldown_(false),stand_(true),bothWasDown_(false),duty_(0),pidPage_(0),pidMenuSelection_(0),debugPage_(0),diagnosticsAt_(0),
+ diagAcceptedPerSec_(0),diagRejectedPerSec_(0),diagGateOnPerSec_(0),diagGateOffPerSec_(0),
+ diagnosticsBaseline_({0,0,0,0}),pidViewFromMenu_(false),standTuneOverride_(false),
  arm_(ArmStage::Idle),armSince_(0),phaseSince_(0),gateWindowSince_(0),
  lastLCD_(0),lastSerial_(0),lastPID_(0),lastTune_(0),lastFaultAt_(0),
  gateBaseline_({0,0,0,0}){}
@@ -183,26 +185,53 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    return;
  }
  if(!boot_.done())return;
+ // DIAGNOSTICO es de SOLO LECTURA, accesible incluso durante un fallo.
+ if(view_==View::Debug){
+   if(e.airLong){view_=fault_==Fault::None?View::Normal:View::Fault;return;}
+   if(e.airShort || e.tempLong){
+     view_=fault_==Fault::None?View::PidMenu:View::Fault;
+     return;
+   }
+   if(e.tempShort){
+     debugPage_=(uint8_t)((debugPage_+1)%Cfg::DEBUG_PAGES);
+   }else{
+     const int8_t step=e.tempStep?e.tempStep:e.airStep;
+     if(step){
+       int page=(int)debugPage_+(step>0?1:-1);
+       if(page<0)page=Cfg::DEBUG_PAGES-1;
+       if(page>=Cfg::DEBUG_PAGES)page=0;
+       debugPage_=(uint8_t)page;
+     }
+   }
+   return;
+ }
  if(view_==View::Fault || fault_!=Fault::None){
+   if(e.airLong){debugPage_=0;view_=View::Debug;return;}
    if(e.tempLong)clearFault(now);
    return;
  }
   // En todos los menus: AIR toque = ATRAS; TEMP toque = OK/seleccionar.
   // AIR largo abre el menu desde el modo normal (nunca calor por esa tecla).
   if(view_==View::PidMenu){
-   if(e.airStep || e.tempStep)pidMenuSelection_^=1U;
+   const int8_t nav=e.tempStep?e.tempStep:e.airStep;
+   if(nav){
+     int next=(int)pidMenuSelection_+(nav>0?1:-1);
+     if(next<0)next=2;
+     if(next>2)next=0;
+     pidMenuSelection_=(uint8_t)next;
+   }
    if(e.airShort || e.tempLong){view_=View::Normal;return;}
    if(e.tempShort){
      if(pidMenuSelection_==0){
        pidPage_=0;lastTuneResult_=TuneStatus::Idle;
        pidViewFromMenu_=true;view_=View::PidView;
+     }else if(pidMenuSelection_==2){
+       debugPage_=0;view_=View::Debug;
      }else{
        if(heatRequest_ || !thermal_.fresh(now)){
          chirp(420,170);
          Serial.println(F("AUTOTUNE_MENU_DENIED: HEAT/SENSOR"));
        }else{
-         // Configurar autotune con el mango apoyado esta permitido.
-         // El permiso de calor se concede solo al comenzar realmente autotune.
          tuneSet_=setpoint_;
          tuneAir_=air_<Cfg::AIR_MIN_HEAT?Cfg::AIR_MIN_HEAT:air_;
          view_=View::TuneSetup;
@@ -328,6 +357,23 @@ void App::controlTick(uint32_t now){
  }
  Hardware::heatDuty(duty_);
 }
+void App::diagnosticsTick(uint32_t now){
+ // Contadores ZC/gate: representan flancos y ordenes, no flujo fisico.
+ if(!diagnosticsAt_){
+   diagnosticsAt_=now;
+   diagnosticsBaseline_=Hardware::counters();
+   return;
+ }
+ const uint32_t dt=(uint32_t)(now-diagnosticsAt_);
+ if(dt<1000UL)return;
+ const Hardware::Counters c=Hardware::counters();
+ diagAcceptedPerSec_=(uint32_t)(((uint64_t)(c.edges-diagnosticsBaseline_.edges)*1000UL+dt/2UL)/dt);
+ diagRejectedPerSec_=(uint32_t)(((uint64_t)(c.rejected-diagnosticsBaseline_.rejected)*1000UL+dt/2UL)/dt);
+ diagGateOnPerSec_=(uint32_t)(((uint64_t)(c.gateOn-diagnosticsBaseline_.gateOn)*1000UL+dt/2UL)/dt);
+ diagGateOffPerSec_=(uint32_t)(((uint64_t)(c.gateOff-diagnosticsBaseline_.gateOff)*1000UL+dt/2UL)/dt);
+ diagnosticsBaseline_=c;
+ diagnosticsAt_=now;
+}
 void App::displayTick(uint32_t now){
  if((uint32_t)(now-lastLCD_)<Cfg::LCD_MS)return;
  lastLCD_=now;
@@ -337,6 +383,26 @@ void App::displayTick(uint32_t now){
  s.setpoint=setpoint_;s.air=air_;s.tuneSet=tuneSet_;s.tuneAir=tuneAir_;
  s.duty=duty_;s.cycles=tune_.cycles();s.pidPage=pidPage_;
  s.pidMenuSelection=pidMenuSelection_;
+ s.debugPage=debugPage_;
+ s.zcAcceptedPerSec=diagAcceptedPerSec_;
+ s.zcRejectedPerSec=diagRejectedPerSec_;
+ s.zcGateOnPerSec=diagGateOnPerSec_;
+ s.zcGateOffPerSec=diagGateOffPerSec_;
+ s.zcPeriodUs=Hardware::zcPeriod();
+ s.zcOK=Hardware::zcHealthy();
+ s.zcInput=digitalRead(Cfg::ZC)==HIGH;
+ s.tcFresh=thermal_.fresh(now);
+ s.tcAgeMs=s.sensor->lastGoodAt?(uint32_t)(now-s.sensor->lastGoodAt):0;
+ s.pumpCmd=Hardware::pumpCommand();
+ s.relayOn=digitalRead(Cfg::RELAY)==HIGH;
+ s.standOn=stand_;
+ s.arm=(uint8_t)arm_;
+ s.freeHeapBytes=ESP.getFreeHeap();
+ s.minHeapBytes=ESP.getMinFreeHeap();
+ s.resetReason=Hardware::resetReason();
+ const Hardware::Counters dbgCounters=Hardware::counters();
+ s.zcTotal=dbgCounters.edges;
+ s.rejectedTotal=dbgCounters.rejected;
  s.heatRequest=heatRequest_;s.cooldown=cooldown_;
  s.preflow=heatRequest_ && arm_!=ArmStage::Ready;
  const uint32_t elapsed=now-armSince_;
@@ -395,6 +461,7 @@ void App::tick(){
   if(e.bothDown || fault_!=Fault::None ||
       (e.standPressed && !standPermittedForTune()))Hardware::heatOff();
  thermal_.tick(now);
+ diagnosticsTick(now);
  // Cada etapa de boot se recorre siempre, incluso con warning o fault previo.
  boot_.tick(now,thermal_.sample(),Hardware::zcHealthy(),Hardware::counters());
  handleInput(e,now);
