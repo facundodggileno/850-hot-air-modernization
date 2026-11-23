@@ -37,7 +37,7 @@ void App::begin(){
  safety_.reset(millis());
  Hardware::heatOff();Hardware::pump(100);
  Hardware::watchdogStart();
- Serial.println(F("HONY 850 PRO MODULAR V3.4.0 | ESP32-S3"));
+ Serial.println(F("HONY 850 PRO MODULAR V3.4.1 | ESP32-S3"));
  Serial.print(F("RESET_FLAGS="));Serial.println(Hardware::resetReason(),HEX);
  Serial.print(F("SRAM_FREE="));Serial.println(freeRam());
  Serial.print(F("PID_NVS="));Serial.println(pidFromEEPROM_?1:0);
