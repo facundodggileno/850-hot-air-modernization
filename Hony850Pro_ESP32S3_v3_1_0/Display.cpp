@@ -126,11 +126,26 @@ void Display::render(const Screen& s){
      strcpy(b,s.loadedPid?"NVS T=ATR":"DEFECTO T=ATR");
    }
  }else{
-   if(s.sensor->valid)snprintf(a,17,"S~:%3d/%3d A%3d",(int)lroundf(s.sensor->outletEst),s.setpoint,s.air);
-   else snprintf(a,17,"S~:---/%3d A%3d",s.setpoint,s.air);
-   if(s.preflow)snprintf(b,17,"PRE-FLOW %us",(unsigned)s.preflowSeconds);
-   else if(s.heatRequest)snprintf(b,17,"HEAT %3u%%",(unsigned)s.duty);
+   // 16 caracteres: C1~ 250/250 A100 (~ = salida ESTIMADA).
+   if(s.sensor->valid && isfinite(s.sensor->outletEst))
+     snprintf(a,17,"C%u~ %3d/%3d A%3d",
+              (unsigned)(s.channel+1),
+              (int)lroundf(s.sensor->outletEst),s.setpoint,s.air);
+   else snprintf(a,17,"C%u~ ---/%3d A%3d",
+                 (unsigned)(s.channel+1),s.setpoint,s.air);
+   if(s.channelSaveNotice){
+     if(s.channelSaveOK)
+       snprintf(b,17,"CH%u GUARDADO",(unsigned)(s.channel+1));
+     else strcpy(b,"ERROR GUARDAR CH");
+   }else if(s.preflow)
+     snprintf(b,17,"PRE-FLOW %us",(unsigned)s.preflowSeconds);
+   else if(s.heatRequest)
+     snprintf(b,17,"HEAT %3u%%",(unsigned)s.duty);
    else if(s.cooldown)strcpy(b,"COOLDOWN AIR100");
+   else if(!Cfg::setpointWithinRawLimit(s.setpoint))
+     strcpy(b,"TEMP NO CALIBR");
+   else if(s.standOn)strcpy(b,"STAND / OFF");
+   else if(s.air<Cfg::AIR_MIN_HEAT)strcpy(b,"AIR < 20: OFF");
    else strcpy(b,"HEAT OFF");
  }
  line(0,a);line(1,b);
