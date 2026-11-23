@@ -66,6 +66,25 @@
 #define HONY_CONTROL_LOST_ERROR_C         28.0f
 #define HONY_CONTROL_LOST_PERIOD_MS      10000UL
 
+// 5.b AUTOTUNE Y VALIDACION DE PID
+#define HONY_AUTOTUNE_TOTAL_TIMEOUT_MS   900000UL
+#define HONY_AUTOTUNE_PHASE_TIMEOUT_MS   180000UL
+#define HONY_AUTOTUNE_UPPER_DELTA_C         3.0f
+#define HONY_AUTOTUNE_LOWER_DELTA_C         3.0f
+#define HONY_AUTOTUNE_AMPLITUDE_MIN_C       1.0f
+#define HONY_AUTOTUNE_AMPLITUDE_MAX_C     110.0f
+#define HONY_AUTOTUNE_PERIOD_MIN_S          1.0f
+#define HONY_AUTOTUNE_PERIOD_MAX_S        180.0f
+#define HONY_AUTOTUNE_MAX_DUTY              65
+#define HONY_PID_KP_MIN                    0.05f
+#define HONY_PID_KP_MAX                   30.0f
+#define HONY_PID_KI_MIN                  0.0001f
+#define HONY_PID_KI_MAX                    5.0f
+#define HONY_PID_KD_MIN                    0.0f
+#define HONY_PID_KD_MAX                  150.0f
+// Heap libre minimo para permitir calefaccion en el ESP32-S3.
+#define HONY_MIN_HEAP_FOR_HEAT_BYTES      8192UL
+
 // 6. SINCRONISMO Y WATCHDOG
 #define HONY_ZC_PERIOD_MIN_US             8000UL // Acepta ~10ms entre cruces en red 50Hz
 #define HONY_ZC_PERIOD_MAX_US            12000UL
