@@ -17,7 +17,7 @@ gptimer_handle_t timerPump=nullptr;
 volatile bool timerReady=false, timerFault=false, heartbeatTripped=false;
 volatile uint8_t pumpPct=100, heaterPct=0;
 volatile bool heatEnabled=false, heatPairSecond=false, heatPairOn=false;
-volatile uint32_t lastZcUs=0, hbUs=0;
+volatile uint32_t lastZcUs=0, zcPeriodUs=0, hbUs=0;
 volatile uint32_t edges=0, rejected=0, gateOn=0, gateOff=0;
 volatile uint16_t halfCycleUs=10000, heatAccumulator=0;
 enum class Phase : uint8_t {Idle,Wait,Pulse};
@@ -78,6 +78,7 @@ void IRAM_ATTR onZeroCross(){
     if(delta>=7500UL && delta<=11500UL)
       halfCycleUs=static_cast<uint16_t>((7UL*halfCycleUs+delta)/8UL);
   }
+  if(lastZcUs)zcPeriodUs=now-lastZcUs;
   lastZcUs=now;++edges;
   if(heatEnabled && hbUs && (uint32_t)(now-hbUs)>Cfg::HEARTBEAT_STALE_US){
     heatEnabled=false;heaterPct=0;heatPairOn=false;
@@ -201,6 +202,11 @@ bool zcHealthy(){
   uint32_t stamp;
   portENTER_CRITICAL(&mux);stamp=lastZcUs;portEXIT_CRITICAL(&mux);
   return stamp && (uint32_t)(micros()-stamp)<=Cfg::ZC_STALE_US;
+}
+uint32_t zcPeriod(){
+  uint32_t v;
+  portENTER_CRITICAL(&mux);v=zcPeriodUs;portEXIT_CRITICAL(&mux);
+  return v;
 }
 Counters counters(){
   Counters c;
