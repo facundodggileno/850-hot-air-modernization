@@ -1,5 +1,6 @@
 #include "PidStore.h"
 #include <Preferences.h>
+#include "Config.h"
 namespace {
 uint8_t crc(const PidStore::Record& r) {
   const uint8_t* p=reinterpret_cast<const uint8_t*>(&r);
@@ -14,8 +15,9 @@ uint8_t crc(const PidStore::Record& r) {
 namespace PidStore {
 static_assert(sizeof(Record)==16,"NVS PID layout inesperado");
 bool valid(const Gains& g) {
- return g.kp>=0.05f && g.kp<=30 && g.ki>=0.0001f &&
-        g.ki<=5 && g.kd>=0 && g.kd<=150;
+ return g.kp>=HONY_PID_KP_MIN && g.kp<=HONY_PID_KP_MAX &&
+        g.ki>=HONY_PID_KI_MIN && g.ki<=HONY_PID_KI_MAX &&
+        g.kd>=HONY_PID_KD_MIN && g.kd<=HONY_PID_KD_MAX;
 }
 bool load(Gains& g) {
  Preferences store;
