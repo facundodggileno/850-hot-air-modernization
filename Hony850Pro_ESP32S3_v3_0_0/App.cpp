@@ -96,6 +96,13 @@ void App::flowTick(uint32_t now){
  }
 }
 void App::beginHeat(uint32_t now){
+ if(!Cfg::setpointWithinRawLimit(setpoint_)){
+   Hardware::heatOff();
+   Serial.printf("START_DENIED: SETPOINT %dC => %.1fC RAW, limite %.1fC RAW (margen %.1f)\n",
+                 setpoint_,Cfg::rawTarget(setpoint_),Cfg::RAW_HARD_LIMIT,
+                 Cfg::RAW_TARGET_MARGIN);
+   chirp(400,160);return;
+ }
  if(!Cfg::MAINS_OUTPUTS_ENABLED || !Hardware::ready() ||
     !boot_.done() || fault_!=Fault::None || !ramOK_ || !display_.ready() ||
     !thermal_.fresh(now) || stand_ || air_<Cfg::AIR_MIN_HEAT ||
@@ -106,6 +113,12 @@ void App::beginHeat(uint32_t now){
  startFlow(now);chirp(2300,70);
 }
 void App::beginTune(uint32_t now){
+  if(!Cfg::setpointWithinRawLimit(tuneSet_)){
+    Hardware::heatOff();
+    Serial.printf("AUTOTUNE_DENIED: SETPOINT %dC => %.1fC RAW; margen insuficiente\n",
+                  tuneSet_,Cfg::rawTarget(tuneSet_));
+    chirp(420,200);return;
+  }
   if(!Cfg::MAINS_OUTPUTS_ENABLED || !Hardware::ready() || stand_ ||
      heatRequest_ || !boot_.done() || fault_!=Fault::None || !thermal_.fresh(now) ||
     !display_.ready() || !ramOK_ || !Hardware::zcHealthy() ||
