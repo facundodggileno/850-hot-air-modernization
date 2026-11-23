@@ -8,6 +8,7 @@
 #include "Boot.h"
 #include "Display.h"
 #include "Safety.h"
+#include "ChannelStore.h"
 
 class App {
  public:
@@ -22,13 +23,16 @@ class App {
   Boot boot_;
   Display display_;
   Safety safety_;
+  ChannelStore channelStore_;
   Gains gains_;
   TuneStatus lastTuneResult_;
   bool pidFromEEPROM_,ramOK_;
   Fault fault_;
   View view_;
   int setpoint_,air_,lastAir_,tuneSet_,tuneAir_;
-  bool heatRequest_,manualPump_,cooldown_,stand_,bothWasDown_;
+  bool heatRequest_,cooldown_,stand_,bothWasDown_,standArmed_;
+  bool channelSaveOK_;
+  uint32_t channelSavedUntil_;
   uint8_t duty_,pidPage_,pidMenuSelection_,debugPage_;
   uint32_t diagnosticsAt_,diagAcceptedPerSec_,diagRejectedPerSec_;
   uint32_t diagGateOnPerSec_,diagGateOffPerSec_;
