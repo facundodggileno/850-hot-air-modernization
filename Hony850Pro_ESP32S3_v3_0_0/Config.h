@@ -12,7 +12,7 @@
 #define HONY_ENABLE_PUMP_OUTPUT 1
 #endif
 
-// Hony 850 Pro V3.0.0: GPIO ESP32-S3. Solo bomba habilitada para ensayo; heater y rele OFF por defecto.
+// Hony 850 Pro V3.1.0: GPIO ESP32-S3. Solo bomba habilitada para ensayo; heater y rele OFF por defecto.
 namespace Cfg {
 constexpr uint8_t ZC=4, PUMP=5, HEATER=6, RELAY=7, BUZZER=8, STAND=9;
 constexpr uint8_t TEMP_CLK=10, TEMP_DT=11, TEMP_SW=12;
