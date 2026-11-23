@@ -2,7 +2,7 @@
 #include "Config.h"
 #include <stdint.h>
 
-// Cinco presets de temperatura de SALIDA ESTIMADA y comando AIR (0..100).
+// Tres presets de temperatura de SALIDA ESTIMADA y comando AIR (0..100).
 // Un canal solo se sobrescribe con AIR sostenido 10s.
 // El indice seleccionado se guarda al cambiar de canal.
 class ChannelStore {
