@@ -8,8 +8,8 @@ int freeRam(){return (int)ESP.getFreeHeap();}
 }
 App::App():gains_({2.932f,0.247f,2.510f}),lastTuneResult_(TuneStatus::Idle),pidFromEEPROM_(false),ramOK_(true),
  fault_(Fault::None),view_(View::Normal),setpoint_(250),air_(100),lastAir_(100),
- tuneSet_(250),tuneAir_(100),heatRequest_(false),manualPump_(true),
- cooldown_(false),stand_(true),bothWasDown_(false),duty_(0),pidPage_(0),pidMenuSelection_(0),debugPage_(0),diagnosticsAt_(0),
+ tuneSet_(250),tuneAir_(100),heatRequest_(false),cooldown_(false),stand_(true),bothWasDown_(false),
+ standArmed_(false),channelSaveOK_(false),channelSavedUntil_(0),duty_(0),pidPage_(0),pidMenuSelection_(0),debugPage_(0),diagnosticsAt_(0),
  diagAcceptedPerSec_(0),diagRejectedPerSec_(0),diagGateOnPerSec_(0),diagGateOffPerSec_(0),
  diagnosticsBaseline_({0,0,0,0}),pidViewFromMenu_(false),standTuneOverride_(false),
  arm_(ArmStage::Idle),armSince_(0),phaseSince_(0),gateWindowSince_(0),
@@ -24,6 +24,10 @@ void App::begin(){
  bool lcdOK=display_.begin();
  pidFromEEPROM_=PidStore::load(gains_);
  pid_.setGains(gains_);
+ channelStore_.begin();
+ const ChannelStore::Preset bootPreset=channelStore_.selectedPreset();
+ setpoint_=bootPreset.tempC;air_=bootPreset.air;lastAir_=air_;
+ standArmed_=false; // No autoencendido si estaba levantado al arrancar.
  stand_=digitalRead(Cfg::STAND)==HIGH;
  ramOK_=freeRam()>=8192;
  const bool wdtBoot=Hardware::resetReason()!=0;
@@ -36,6 +40,9 @@ void App::begin(){
  Serial.print(F("RESET_FLAGS="));Serial.println(Hardware::resetReason(),HEX);
  Serial.print(F("SRAM_FREE="));Serial.println(freeRam());
  Serial.print(F("PID_NVS="));Serial.println(pidFromEEPROM_?1:0);
+ Serial.printf("CANAL=CH%u TEMP=%d AIR=%d NVS=%d\n",
+   (unsigned)(channelStore_.selectedIndex()+1),setpoint_,air_,
+   channelStore_.presetsLoadedFromNvs()?1:0);
  Serial.println(F("ms,outlet_est_c,sp,air,pump,duty,heat,arm,fault,zc,boot,ram,tune"));
  chirp(2000,60);
 }
@@ -56,7 +63,7 @@ void App::trip(Fault why,uint32_t now){
 void App::cooldownStart(){
   Hardware::heatOff();duty_=0;heatRequest_=false;arm_=ArmStage::Idle;
   standTuneOverride_=false;
-  tune_.abort();cooldown_=true;manualPump_=false;
+  tune_.abort();cooldown_=true;
  Hardware::pump(100);pid_.reset();
 }
 void App::startFlow(uint32_t now){
@@ -110,7 +117,7 @@ void App::beginHeat(uint32_t now){
     !Hardware::zcHealthy() || thermal_.sample().raw>=Cfg::RAW_HARD_LIMIT){
    chirp(400,160);Serial.println(F("START_DENIED: SENSOR/ZC/STAND/AIR/LCD/RAM/FAULT"));return;
  }
- cooldown_=false;heatRequest_=true;manualPump_=true;
+ cooldown_=false;heatRequest_=true;
  startFlow(now);chirp(2300,70);
 }
 void App::beginTune(uint32_t now){
@@ -127,7 +134,7 @@ void App::beginTune(uint32_t now){
     chirp(420,200);return;
   }
   setpoint_=tuneSet_;air_=tuneAir_;lastAir_=air_;
-  cooldown_=false;heatRequest_=true;manualPump_=true;
+  cooldown_=false;heatRequest_=true;
   // El unico permiso excepcional de stand se concede en este instante
   // y se revoca en finishTune(), cooldownStart() y trip().
   standTuneOverride_=false;
@@ -169,11 +176,13 @@ void App::clearFault(uint32_t now){
  Serial.println(F("FAULT REARM MANUAL / HEAT OFF"));chirp(2200,100);
 }
 void App::handleInput(const InputFrame& e,uint32_t now){
+ const bool wasOnStand=stand_;
  stand_=e.standPressed;
   if(stand_ && heatRequest_ && !standPermittedForTune()){
    cooldownStart();
    if(view_==View::Tuning)view_=View::Normal;
   }
+  if(boot_.done() && stand_)standArmed_=true;
  if(e.bothDown){
    Hardware::heatOff();duty_=0;
    if(e.bothLong)trip(Fault::EStop,now);
@@ -185,6 +194,13 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    return;
  }
  if(!boot_.done())return;
+ // Encendido al LEVANTAR: exige haber detectado previamente stand apoyado
+ // despues del boot; no enciende por el mero hecho de arrancar sin stand.
+ if(Cfg::AUTO_START_ON_LIFT && standArmed_ && wasOnStand && !stand_ &&
+    fault_==Fault::None && air_>=Cfg::AIR_MIN_HEAT &&
+    view_!=View::TuneSetup && view_!=View::Tuning){
+   beginHeat(now);
+ }
  // DIAGNOSTICO es de SOLO LECTURA, accesible incluso durante un fallo.
  if(view_==View::Debug){
    if(e.airLong){view_=fault_==Fault::None?View::Normal:View::Fault;return;}
@@ -264,33 +280,61 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    if(e.airShort || e.tempLong)view_=View::PidMenu;
    return;
  }
+ // Main: TEMP/AIR encoders adjust setpoint; botones NO conmutan potencia.
  if(e.tempStep){
    setpoint_=clampInt(setpoint_+e.tempStep*Cfg::TEMP_STEP,Cfg::TEMP_MIN,Cfg::TEMP_MAX);
    if(heatRequest_ && !Cfg::setpointWithinRawLimit(setpoint_)){
      cooldownStart();
      Serial.println(F("COOLDOWN: CONSIGNA FUERA DE CALIBRACION"));
+   }else if(!heatRequest_ && !stand_ && standArmed_ &&
+            air_>=Cfg::AIR_MIN_HEAT && Cfg::AUTO_START_ON_LIFT &&
+            Cfg::setpointWithinRawLimit(setpoint_) && fault_==Fault::None){
+     beginHeat(now);
    }
    pid_.reset();safety_.reset(now);
  }
  if(e.airStep){
    const int v=clampInt(air_+e.airStep*Cfg::AIR_STEP,0,100);
    if(v!=air_){
-     air_=v;if(air_)lastAir_=air_;
+     const int previousAir=air_;
+     air_=v;if(air_>=Cfg::AIR_MIN_HEAT)lastAir_=air_;
      if(heatRequest_){
        if(air_<Cfg::AIR_MIN_HEAT)cooldownStart();
        else startFlow(now);
+     }else if(previousAir<Cfg::AIR_MIN_HEAT &&
+              air_>=Cfg::AIR_MIN_HEAT && !stand_ && standArmed_ &&
+              Cfg::AUTO_START_ON_LIFT && fault_==Fault::None){
+       beginHeat(now);
      }
    }
  }
- if(e.tempShort){
-   if(heatRequest_)cooldownStart();
-   else beginHeat(now);
- }
+ // AIR click: cambia de canal. La edicion no modifica su preset guardado.
  if(e.airShort){
-   if(!heatRequest_ && !(thermal_.fresh(now) && thermal_.sample().outletEst>=Cfg::OUTLET_COOL_START_C)){
-     manualPump_=!manualPump_;
-     if(manualPump_ && air_==0)air_=lastAir_;
-   }
+   const uint8_t next=(uint8_t)((channelStore_.selectedIndex()+1U)%Cfg::CHANNELS);
+   const bool committed=channelStore_.select(next);
+   const ChannelStore::Preset preset=channelStore_.selectedPreset();
+   setpoint_=preset.tempC;air_=preset.air;lastAir_=air_;
+   channelSavedUntil_=0;
+   if(heatRequest_){
+     if(air_<Cfg::AIR_MIN_HEAT || !Cfg::setpointWithinRawLimit(setpoint_))
+       cooldownStart();
+     else startFlow(now);
+   }else if(!stand_ && standArmed_ && air_>=Cfg::AIR_MIN_HEAT &&
+            Cfg::AUTO_START_ON_LIFT && fault_==Fault::None)
+     beginHeat(now);
+   pid_.reset();safety_.reset(now);
+   chirp(1700,50);
+   Serial.printf("CANAL CH%u TEMP=%d AIR=%d NVS=%d\n",
+                 (unsigned)(next+1),setpoint_,air_,committed?1:0);
+ }
+ // AIR sostenido 10s: guardar las modificaciones en el canal actual.
+ if(e.airHold10){
+   channelSaveOK_=channelStore_.saveCurrent(setpoint_,air_);
+   channelSavedUntil_=now+Cfg::CHANNEL_SAVED_MS;
+   chirp(channelSaveOK_?2600:450,channelSaveOK_?125:280);
+   Serial.printf("CANAL_GUARDAR CH%u TEMP=%d AIR=%d OK=%d\n",
+                 (unsigned)(channelStore_.selectedIndex()+1),
+                 setpoint_,air_,channelSaveOK_?1:0);
  }
  // Se conserva el atajo anterior: TEMP largo muestra directamente el PID.
  if(e.tempLong && !heatRequest_){
