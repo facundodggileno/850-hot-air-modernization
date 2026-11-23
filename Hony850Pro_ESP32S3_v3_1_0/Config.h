@@ -41,6 +41,9 @@
 #define HONY_STAND_DEBOUNCE_CONFIG_MS       35UL // Inmediatez al apoyar, debounce al sacar
 #define HONY_PRE_FLOW_TIME_MS             3000UL // Calor solo tras este preflujo
 #define HONY_PUMP_GATE_TEST_TIME_MS       1000UL
+#define HONY_PUMP_GATE_TEST_MIN_EVENTS        70  // Comando MOC ON/OFF esperado en prueba 1s
+#define HONY_PUMP_GATE_MONITOR_MIN_EVENTS     35  // Comando MOC ON/OFF esperado en vigilancia 0,5s
+#define HONY_PUMP_GATE_MAX_IMBALANCE           4  // Diferencia entre pulsos ON y OFF
 
 // 4. CANALES PERSISTENTES NVS
 #define HONY_CHANNEL_COUNT                   5   // CH1..CH5
