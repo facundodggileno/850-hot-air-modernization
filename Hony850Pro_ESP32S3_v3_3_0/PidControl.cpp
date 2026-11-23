@@ -2,7 +2,9 @@
 #include "Config.h"
 PidControl::PidControl():gains_({1.994f,0.168f,1.707f}),integral_(0),lastMs_(0),lastDtMs_(0){}
 void PidControl::reset(){integral_=0;lastMs_=0;lastDtMs_=0;}
-uint8_t PidControl::update(float outlet,float smoothed,float rate,float targetOutlet,uint8_t air,uint32_t now){
+uint8_t PidControl::update(float outlet,float smoothed,float rate,
+                           float targetOutlet,uint8_t air,uint32_t now,
+                           bool fastHeat){
   const uint32_t elapsed=lastMs_?(uint32_t)(now-lastMs_):Cfg::PID_MS;
   if(lastMs_ && elapsed<Cfg::PID_MS)return 255; // mantener mando anterior
   lastDtMs_=elapsed;
@@ -12,11 +14,16 @@ uint8_t PidControl::update(float outlet,float smoothed,float rate,float targetOu
   const float dt=(elapsed>750UL?750UL:elapsed)/1000.0f;
   if(isnan(smoothed))smoothed=outlet;
   const float err=targetOutlet-smoothed;
-  const float p=gains_.kp*err, d=-gains_.kd*rate;
-  // Limitar potencia cuando el caudal SOLICITADO sea bajo, no implica medir aire.
+  // FAST se aplica UNICAMENTE al calentamiento inicial desde App.
+  // No supera el duty limitado por AIR. Safety permanece independiente.
+  const float derivativeScale=fastHeat?HONY_FAST_HEAT_DERIVATIVE_FACTOR:1.0f;
+  const float p=gains_.kp*err;
+  const float d=-gains_.kd*rate*derivativeScale;
   float cap=(float)air;
-  if(rate>0.8f && err>0 && err<90){
-    const float projected=err-2.0f*rate;
+  const float brakeZone=fastHeat?HONY_FAST_HEAT_BRAKE_START_C:90.0f;
+  const float leadSeconds=fastHeat?HONY_FAST_HEAT_LOOKAHEAD_S:2.0f;
+  if(rate>0.8f && err>0 && err<brakeZone){
+    const float projected=err-leadSeconds*rate;
     float brake=projected<=0?0:(projected<=12?15:(projected<=25?30:(projected<=50?55:75)));
     if(brake<cap)cap=brake;
   }
