@@ -130,15 +130,17 @@
 #if HONY_FAST_HEAT_MIN_AIR_PCT < HONY_MIN_AIR_TO_RUN || HONY_FAST_HEAT_MIN_AIR_PCT > 100
 #error "FAST_HEAT: aire minimo fuera de rango."
 #endif
-#if HONY_FAST_HEAT_EXIT_ERROR_C <= 0 || HONY_FAST_HEAT_BRAKE_START_C <= HONY_FAST_HEAT_EXIT_ERROR_C
-#error "FAST_HEAT: umbrales de salida/frenado inconsistentes."
-#endif
-#if HONY_FAST_HEAT_DERIVATIVE_FACTOR <= 0 || HONY_FAST_HEAT_DERIVATIVE_FACTOR > 1
-#error "FAST_HEAT: factor derivativo debe ser >0 y <=1."
-#endif
-#if HONY_FAST_HEAT_LOOKAHEAD_S <= 0 || HONY_FAST_HEAT_MAX_RISE_CPS <= 0
-#error "FAST_HEAT: limites de anticipacion y subida deben ser positivos."
-#endif
+// Las expresiones float se verifican con static_assert, no con #if.
+static_assert(HONY_FAST_HEAT_EXIT_ERROR_C>0.0f &&
+              HONY_FAST_HEAT_BRAKE_START_C>HONY_FAST_HEAT_EXIT_ERROR_C,
+              "FAST_HEAT: umbrales de salida/frenado inconsistentes.");
+static_assert(HONY_FAST_HEAT_DERIVATIVE_FACTOR>0.0f &&
+              HONY_FAST_HEAT_DERIVATIVE_FACTOR<=1.0f,
+              "FAST_HEAT: factor derivativo fuera de rango.");
+static_assert(HONY_FAST_HEAT_LOOKAHEAD_S>0.0f &&
+              HONY_FAST_HEAT_MAX_RISE_CPS>0.0f &&
+              HONY_FAST_HEAT_RAW_HEADROOM_C>0.0f,
+              "FAST_HEAT: margenes y limites deben ser positivos.");
 #if HONY_SAMPLE_TC_MS < 250UL
 #error "MAX6675: intervalo minimo 250ms entre lecturas completas."
 #endif
