@@ -238,6 +238,10 @@ void App::handleInput(const InputFrame& e,uint32_t now){
  }
  if(e.tempStep){
    setpoint_=clampInt(setpoint_+e.tempStep*Cfg::TEMP_STEP,Cfg::TEMP_MIN,Cfg::TEMP_MAX);
+   if(heatRequest_ && !Cfg::setpointWithinRawLimit(setpoint_)){
+     cooldownStart();
+     Serial.println(F("COOLDOWN: SETPOINT SUPERA LIMITE RAW SEGURO"));
+   }
    pid_.reset();safety_.reset(now);
  }
  if(e.airStep){
@@ -271,7 +275,8 @@ void App::handleInput(const InputFrame& e,uint32_t now){
  if(e.airLong){view_=View::PidMenu;pidMenuSelection_=0;}
 }
 bool App::allowHeat(uint32_t now)const{
-  return Cfg::MAINS_OUTPUTS_ENABLED && Hardware::ready() && boot_.done() && fault_==Fault::None && display_.ready() && ramOK_ &&
+  return Cfg::setpointWithinRawLimit(setpoint_) &&
+         Cfg::MAINS_OUTPUTS_ENABLED && Hardware::ready() && boot_.done() && fault_==Fault::None && display_.ready() && ramOK_ &&
         heatRequest_ && arm_==ArmStage::Ready &&
         (!stand_ || standPermittedForTune()) && !bothWasDown_ && air_>=Cfg::AIR_MIN_HEAT &&
         thermal_.fresh(now) && Hardware::zcHealthy() &&
