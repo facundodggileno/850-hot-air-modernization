@@ -32,7 +32,7 @@ void App::begin(){
  safety_.reset(millis());
  Hardware::heatOff();Hardware::pump(100);
  Hardware::watchdogStart();
- Serial.println(F("HONY 850 PRO MODULAR V3.0.0 | ESP32-S3"));
+ Serial.println(F("HONY 850 PRO MODULAR V3.1.0 | ESP32-S3"));
  Serial.print(F("RESET_FLAGS="));Serial.println(Hardware::resetReason(),HEX);
  Serial.print(F("SRAM_FREE="));Serial.println(freeRam());
  Serial.print(F("PID_NVS="));Serial.println(pidFromEEPROM_?1:0);
@@ -145,9 +145,9 @@ void App::finishTune(uint32_t now){
    const Gains g=tune_.result();
    if(PidStore::save(g)){
      gains_=g;pid_.setGains(gains_);pidFromEEPROM_=true;
-     Serial.println(F("AUTOTUNE OK,PID GUARDADO EEPROM"));
+     Serial.println(F("AUTOTUNE OK,PID GUARDADO NVS"));
      chirp(2600,150);
-   }else Serial.println(F("AUTOTUNE EEPROM DENIED"));
+   }else Serial.println(F("AUTOTUNE NVS DENIED"));
  }else{
    Serial.print(F("AUTOTUNE FIN,STATUS="));Serial.println((unsigned)result);
    chirp(430,220);
