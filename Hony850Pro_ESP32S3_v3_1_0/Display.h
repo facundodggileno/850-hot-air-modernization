@@ -14,6 +14,8 @@ struct Screen {
  int setpoint,air,tuneSet,tuneAir;
  uint8_t duty,cycles,pidPage,pidMenuSelection;
  bool heatRequest,cooldown,preflow,loadedPid;
+ uint8_t channel;
+ bool channelSaveNotice,channelSaveOK;
  uint16_t preflowSeconds;
  Gains gains;
  TuneStatus tuneStatus;
