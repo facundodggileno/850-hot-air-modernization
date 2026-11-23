@@ -10,7 +10,7 @@ App::App():gains_({2.932f,0.247f,2.510f}),lastTuneResult_(TuneStatus::Idle),pidF
  fault_(Fault::None),view_(View::Normal),setpoint_(250),air_(100),lastAir_(100),
  tuneSet_(250),tuneAir_(100),heatRequest_(false),cooldown_(false),stand_(true),bothWasDown_(false),
  standArmed_(false),channelSaveOK_(false),channelSavedUntil_(0),
- readyBeepArmed_(false),readySinceMs_(0),lastPidSampleSequence_(0),lastPidPeriodMs_(0),duty_(0),pidPage_(0),pidMenuSelection_(0),debugPage_(0),diagnosticsAt_(0),
+ readyBeepArmed_(false),fastHeatActive_(false),readySinceMs_(0),lastPidSampleSequence_(0),lastPidPeriodMs_(0),duty_(0),pidPage_(0),pidMenuSelection_(0),debugPage_(0),diagnosticsAt_(0),
  diagAcceptedPerSec_(0),diagRejectedPerSec_(0),diagGateOnPerSec_(0),diagGateOffPerSec_(0),
  diagnosticsBaseline_({0,0,0,0}),pidViewFromMenu_(false),standTuneOverride_(false),
  arm_(ArmStage::Idle),armSince_(0),phaseSince_(0),gateWindowSince_(0),
@@ -52,7 +52,7 @@ void App::trip(Fault why,uint32_t now){
  // Cortar potencia ANTES de emitir serial, LCD o audio.
  Hardware::heatOff();duty_=0;heatRequest_=false;arm_=ArmStage::Idle;
  standTuneOverride_=false;
- readyBeepArmed_=false;readySinceMs_=0;
+ readyBeepArmed_=false;readySinceMs_=0;fastHeatActive_=false;
  fault_=why;view_=View::Fault;lastFaultAt_=now;
  tune_.abort();
  Hardware::pump(100);
@@ -66,7 +66,7 @@ void App::cooldownStart(){
   Hardware::heatOff();duty_=0;heatRequest_=false;arm_=ArmStage::Idle;
   standTuneOverride_=false;
   tune_.abort();cooldown_=true;
- readyBeepArmed_=false;readySinceMs_=0;
+ readyBeepArmed_=false;readySinceMs_=0;fastHeatActive_=false;
  Hardware::pump(100);pid_.reset();
 }
 void App::startFlow(uint32_t now){
@@ -124,6 +124,9 @@ void App::beginHeat(uint32_t now){
    chirp(400,160);Serial.println(F("START_DENIED: SENSOR/ZC/STAND/AIR/LCD/RAM/FAULT"));return;
  }
  cooldown_=false;heatRequest_=true;
+ // FAST solo en calentamiento normal tras preflujo. Nunca en autotune.
+ fastHeatActive_=(HONY_FAST_HEAT_ENABLED!=0) &&
+                 (air_>=HONY_FAST_HEAT_MIN_AIR_PCT);
  readyBeepArmed_=true;readySinceMs_=0;
  startFlow(now);chirp(2300,70);
 }
@@ -142,6 +145,7 @@ void App::beginTune(uint32_t now){
   }
   setpoint_=tuneSet_;air_=tuneAir_;lastAir_=air_;
   cooldown_=false;heatRequest_=true;
+  fastHeatActive_=false;
   readyBeepArmed_=false;readySinceMs_=0;
   // El unico permiso excepcional de stand se concede en este instante
   // y se revoca en finishTune(), cooldownStart() y trip().
@@ -155,7 +159,7 @@ void App::finishTune(uint32_t now){
  const TuneStatus result=tune_.status();
  lastTuneResult_=result;
   Hardware::heatOff();heatRequest_=false;arm_=ArmStage::Idle;duty_=0;
-  standTuneOverride_=false;
+  standTuneOverride_=false;fastHeatActive_=false;
   if(result==TuneStatus::Done){
    const Gains g=tune_.result();
    if(PidStore::save(g)){
@@ -423,6 +427,17 @@ void App::controlTick(uint32_t now){
  // por muestra nueva, sin integrar error repetido durante loop() rapido.
  const uint32_t sequence=thermal_.sequence();
  if(!sequence || sequence==lastPidSampleSequence_)return;
+ // Al superar cualquiera de estas condiciones, FAST se desactiva
+ // hasta el proximo arranque normal. No se reengancha oscilando
+ // alrededor de la consigna, ni modifica el autotune.
+ if(fastHeatActive_ &&
+    (view_==View::Tuning || air_<HONY_FAST_HEAT_MIN_AIR_PCT ||
+     (float)setpoint_-t.outletEst<=HONY_FAST_HEAT_EXIT_ERROR_C ||
+     t.outletRate>=HONY_FAST_HEAT_MAX_RISE_CPS ||
+     t.raw>=Cfg::RAW_HARD_LIMIT-HONY_FAST_HEAT_RAW_HEADROOM_C)){
+   fastHeatActive_=false;
+   Serial.println(F("FAST_HEAT: FIN -> PID NORMAL"));
+ }
  lastPidSampleSequence_=sequence;
  lastPidPeriodMs_=lastPID_?(uint32_t)(now-lastPID_):0;
  lastPID_=now;
@@ -432,7 +447,7 @@ void App::controlTick(uint32_t now){
  }else{
    const uint8_t out=pid_.update(
      t.outletEst,t.outletControlled,t.outletRate,
-     (float)setpoint_,(uint8_t)air_,now);
+     (float)setpoint_,(uint8_t)air_,now,fastHeatActive_);
    if(out!=255)duty_=out;
  }
  Hardware::heatDuty(duty_);
@@ -512,6 +527,7 @@ void App::displayTick(uint32_t now){
  s.zcTotal=dbgCounters.edges;
  s.rejectedTotal=dbgCounters.rejected;
  s.heatRequest=heatRequest_;s.cooldown=cooldown_;
+ s.fastHeat=fastHeatActive_ && view_!=View::Tuning;
  s.preflow=heatRequest_ && arm_!=ArmStage::Ready;
  const uint32_t elapsed=now-armSince_;
  s.preflowSeconds=s.preflow && elapsed<Cfg::PREFLOW_MS?
