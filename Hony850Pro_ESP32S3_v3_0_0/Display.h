@@ -18,6 +18,12 @@ struct Screen {
  Gains gains;
  TuneStatus tuneStatus;
  bool tuneHeating;
+ // Diagnostico en LCD: contadores de sincronizacion y estado interno.
+ uint8_t debugPage,pumpCmd,arm,resetReason;
+ uint32_t zcAcceptedPerSec,zcRejectedPerSec,zcPeriodUs;
+ uint32_t zcGateOnPerSec,zcGateOffPerSec,tcAgeMs;
+ uint32_t freeHeapBytes,minHeapBytes,zcTotal,rejectedTotal;
+ bool zcOK,zcInput,tcFresh,relayOn,standOn;
 };
 class Display {
  public:
@@ -30,5 +36,5 @@ class Display {
   hd44780_I2Cexp lcd_{0x27, I2Cexp_PCF8574, 0, 2, 4, 5, 6, 7, 3, HIGH};
   bool ready_=false;
   void line(uint8_t r,const char* str);
-  void rawLine(char* dst,const SensorSample& s,bool count);
+  void tempLine(char* dst,const SensorSample& s,bool count);
 };
