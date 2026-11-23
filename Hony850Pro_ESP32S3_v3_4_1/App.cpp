@@ -9,7 +9,7 @@ int freeRam(){return (int)ESP.getFreeHeap();}
 App::App():gains_({2.932f,0.247f,2.510f}),lastTuneResult_(TuneStatus::Idle),pidFromEEPROM_(false),ramOK_(true),
  fault_(Fault::None),view_(View::Normal),setpoint_(250),air_(100),lastAir_(100),
  tuneSet_(250),tuneAir_(100),heatRequest_(false),cooldown_(false),stand_(true),bothWasDown_(false),
- standArmed_(false),channelSaveOK_(false),channelSavedUntil_(0),
+ standArmed_(false),manualHeatOff_(false),channelSaveOK_(false),channelSavedUntil_(0),
  readyBeepArmed_(false),fastHeatActive_(false),readySinceMs_(0),lastPidSampleSequence_(0),lastPidPeriodMs_(0),duty_(0),pidPage_(0),pidMenuSelection_(0),debugPage_(0),diagnosticsAt_(0),
  diagAcceptedPerSec_(0),diagRejectedPerSec_(0),diagGateOnPerSec_(0),diagGateOffPerSec_(0),
  diagnosticsBaseline_({0,0,0,0}),pidViewFromMenu_(false),standTuneOverride_(false),
@@ -37,7 +37,7 @@ void App::begin(){
  safety_.reset(millis());
  Hardware::heatOff();Hardware::pump(100);
  Hardware::watchdogStart();
- Serial.println(F("HONY 850 PRO MODULAR V3.4.1 | ESP32-S3"));
+ Serial.println(F("HONY 850 PRO MODULAR V3.4.2 | ESP32-S3"));
  Serial.print(F("RESET_FLAGS="));Serial.println(Hardware::resetReason(),HEX);
  Serial.print(F("SRAM_FREE="));Serial.println(freeRam());
  Serial.print(F("PID_NVS="));Serial.println(pidFromEEPROM_?1:0);
@@ -124,6 +124,7 @@ void App::beginHeat(uint32_t now){
    chirp(400,160);Serial.println(F("START_DENIED: SENSOR/ZC/STAND/AIR/LCD/RAM/FAULT"));return;
  }
  cooldown_=false;heatRequest_=true;
+ manualHeatOff_=false; // TEMP ON o stand levantado rearman la calefaccion.
  // FAST solo en calentamiento normal tras preflujo. Nunca en autotune.
  fastHeatActive_=(HONY_FAST_HEAT_ENABLED!=0) &&
                  (air_>=HONY_FAST_HEAT_MIN_AIR_PCT);
@@ -195,6 +196,12 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    if(view_==View::Tuning)view_=View::Normal;
   }
   if(boot_.done() && stand_)standArmed_=true;
+ // Un nuevo apoyo invalida el apagado manual TEMP, sin calentar hasta
+ // que el mango se retire de nuevo. Solo un ciclo del stand lo rearma.
+ if(stand_ && !wasOnStand && manualHeatOff_){
+   manualHeatOff_=false;
+   Serial.println(F("TEMP_MANUAL_OFF: REARMADO POR STAND"));
+ }
  if(e.bothDown){
    Hardware::heatOff();duty_=0;
    if(e.bothLong)trip(Fault::EStop,now);
@@ -209,7 +216,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
  // Encendido al LEVANTAR: exige haber detectado previamente stand apoyado
  // despues del boot; no enciende por el mero hecho de arrancar sin stand.
  if(Cfg::AUTO_START_ON_LIFT && standArmed_ && wasOnStand && !stand_ &&
-    fault_==Fault::None && air_>=Cfg::AIR_MIN_HEAT &&
+    !manualHeatOff_ && fault_==Fault::None && air_>=Cfg::AIR_MIN_HEAT &&
     view_!=View::TuneSetup && view_!=View::Tuning){
    beginHeat(now);
  }
@@ -292,14 +299,28 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    if(e.airShort || e.tempLong)view_=View::PidMenu;
    return;
  }
- // Main: TEMP/AIR encoders adjust setpoint; botones NO conmutan potencia.
+ // Main: click TEMP alterna HEATER ON/OFF sin cortar el aire.
+ // Apagado manual persiste hasta un nuevo APOYAR+LEVANTAR en stand.
+ if(e.tempShort && HONY_TEMP_CLICK_HEAT_TOGGLE){
+   if(heatRequest_){
+     cooldownStart(); // heater OFF inmediato, bomba de refrigeracion activa
+     manualHeatOff_=true; // no auto-reiniciar al girar TEMP/AIR ni al cambiar CH
+     Serial.println(F("TEMP_CLICK: HEATER OFF / SOLO AIRE"));
+     chirp(1050,95);
+   }else{
+     beginHeat(now); // protecciones y preflujo de 3 s intactos
+     if(heatRequest_){
+       Serial.println(F("TEMP_CLICK: HEATER ON / PREFLOW"));
+     }
+   }
+ }
  if(e.tempStep){
    setpoint_=clampInt(setpoint_+e.tempStep*Cfg::TEMP_STEP,Cfg::TEMP_MIN,Cfg::TEMP_MAX);
    readyBeepArmed_=true;readySinceMs_=0;
    if(heatRequest_ && !Cfg::setpointWithinRawLimit(setpoint_)){
      cooldownStart();
      Serial.println(F("COOLDOWN: CONSIGNA FUERA DE CALIBRACION"));
-   }else if(!heatRequest_ && !stand_ && standArmed_ &&
+   }else if(!heatRequest_ && !manualHeatOff_ && !stand_ && standArmed_ &&
             air_>=Cfg::AIR_MIN_HEAT && Cfg::AUTO_START_ON_LIFT &&
             Cfg::setpointWithinRawLimit(setpoint_) && fault_==Fault::None){
      beginHeat(now);
@@ -314,7 +335,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
      if(heatRequest_){
        if(air_<Cfg::AIR_MIN_HEAT)cooldownStart();
        else startFlow(now);
-     }else if(previousAir<Cfg::AIR_MIN_HEAT &&
+     }else if(previousAir<Cfg::AIR_MIN_HEAT && !manualHeatOff_ &&
               air_>=Cfg::AIR_MIN_HEAT && !stand_ && standArmed_ &&
               Cfg::AUTO_START_ON_LIFT && fault_==Fault::None){
        beginHeat(now);
@@ -338,7 +359,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
      if(air_<Cfg::AIR_MIN_HEAT || !Cfg::setpointWithinRawLimit(setpoint_))
        cooldownStart();
      else startFlow(now);
-   }else if(!stand_ && standArmed_ && air_>=Cfg::AIR_MIN_HEAT &&
+   }else if(!manualHeatOff_ && !stand_ && standArmed_ && air_>=Cfg::AIR_MIN_HEAT &&
             Cfg::AUTO_START_ON_LIFT && fault_==Fault::None)
      beginHeat(now);
    pid_.reset();safety_.reset(now);
@@ -527,6 +548,7 @@ void App::displayTick(uint32_t now){
  s.zcTotal=dbgCounters.edges;
  s.rejectedTotal=dbgCounters.rejected;
  s.heatRequest=heatRequest_;s.cooldown=cooldown_;
+ s.manualHeatOff=manualHeatOff_;
  s.fastHeat=fastHeatActive_ && view_!=View::Tuning;
  s.preflow=heatRequest_ && arm_!=ArmStage::Ready;
  const uint32_t elapsed=now-armSince_;
