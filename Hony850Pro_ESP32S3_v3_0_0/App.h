@@ -29,7 +29,10 @@ class App {
   View view_;
   int setpoint_,air_,lastAir_,tuneSet_,tuneAir_;
   bool heatRequest_,manualPump_,cooldown_,stand_,bothWasDown_;
-  uint8_t duty_,pidPage_,pidMenuSelection_;
+  uint8_t duty_,pidPage_,pidMenuSelection_,debugPage_;
+  uint32_t diagnosticsAt_,diagAcceptedPerSec_,diagRejectedPerSec_;
+  uint32_t diagGateOnPerSec_,diagGateOffPerSec_;
+  Hardware::Counters diagnosticsBaseline_;
   bool pidViewFromMenu_;
   bool standTuneOverride_; // Vestigio de V2: V3 nunca habilita calor con stand.
   ArmStage arm_;
@@ -48,6 +51,7 @@ class App {
   void controlTick(uint32_t now);
   void displayTick(uint32_t now);
   void serialTick(uint32_t now);
+  void diagnosticsTick(uint32_t now);
   void serialCommand(uint32_t now);
   bool allowHeat(uint32_t now) const;
   bool standPermittedForTune() const;
