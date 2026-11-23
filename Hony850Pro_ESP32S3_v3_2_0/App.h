@@ -33,6 +33,10 @@ class App {
   bool heatRequest_,cooldown_,stand_,bothWasDown_,standArmed_;
   bool channelSaveOK_;
   uint32_t channelSavedUntil_;
+  bool readyBeepArmed_;
+  uint32_t readySinceMs_;
+  uint32_t lastPidSampleSequence_;
+  uint32_t lastPidPeriodMs_;
   uint8_t duty_,pidPage_,pidMenuSelection_,debugPage_;
   uint32_t diagnosticsAt_,diagAcceptedPerSec_,diagRejectedPerSec_;
   uint32_t diagGateOnPerSec_,diagGateOffPerSec_;
@@ -53,6 +57,7 @@ class App {
   void finishTune(uint32_t now);
   void handleInput(const InputFrame& e,uint32_t now);
   void controlTick(uint32_t now);
+  void readyBeepTick(uint32_t now);
   void displayTick(uint32_t now);
   void serialTick(uint32_t now);
   void diagnosticsTick(uint32_t now);
