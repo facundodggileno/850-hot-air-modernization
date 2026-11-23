@@ -101,11 +101,19 @@ void Display::render(const Screen& s){
     snprintf(a,17,"ZC TOTAL:%lu",(unsigned long)s.zcTotal);
     snprintf(b,17,"REJ TOTAL:%lu",(unsigned long)s.rejectedTotal);
     break;
-  default:
+  case 7:
     snprintf(a,17,"HEAP:%5luKB",
              (unsigned long)(s.freeHeapBytes/1024UL));
     snprintf(b,17,"MIN:%6luKB",
              (unsigned long)(s.minHeapBytes/1024UL));
+    break;
+  default:
+    // Permite diagnosticar la cadencia real y el tiempo de lectura.
+    snprintf(a,17,"TC:%lums RD:%luus",
+             (unsigned long)s.tcPeriodMs,
+             (unsigned long)s.tcReadUs);
+    snprintf(b,17,"PID:%lums (EST)",
+             (unsigned long)s.pidPeriodMs);
     break;
   }
  }else if(s.boot!=Boot::Stage::Done){
