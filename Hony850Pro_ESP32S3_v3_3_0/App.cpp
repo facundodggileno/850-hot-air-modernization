@@ -37,14 +37,14 @@ void App::begin(){
  safety_.reset(millis());
  Hardware::heatOff();Hardware::pump(100);
  Hardware::watchdogStart();
- Serial.println(F("HONY 850 PRO MODULAR V3.3.0 | ESP32-S3"));
+ Serial.println(F("HONY 850 PRO MODULAR V3.4.0 | ESP32-S3"));
  Serial.print(F("RESET_FLAGS="));Serial.println(Hardware::resetReason(),HEX);
  Serial.print(F("SRAM_FREE="));Serial.println(freeRam());
  Serial.print(F("PID_NVS="));Serial.println(pidFromEEPROM_?1:0);
  Serial.printf("CANAL=CH%u TEMP=%d AIR=%d NVS=%d\n",
    (unsigned)(channelStore_.selectedIndex()+1),setpoint_,air_,
    channelStore_.presetsLoadedFromNvs()?1:0);
- Serial.println(F("ms,outlet_est_c,sp,air,pump,duty,heat,arm,fault,zc,boot,ram,tune,channel"));
+ Serial.println(F("ms,outlet_est_c,sp,air,pump,duty,heat,arm,fault,zc,boot,ram,tune,channel,fast"));
  chirp(2000,60);
 }
 void App::trip(Fault why,uint32_t now){
@@ -562,7 +562,9 @@ void App::serialTick(uint32_t now){
  Serial.print((unsigned)boot_.stage());Serial.print(',');
  Serial.print(freeRam());Serial.print(',');
  Serial.print((unsigned)tune_.cycles());Serial.print(',');
- Serial.println((unsigned)(channelStore_.selectedIndex()+1));
+ Serial.print((unsigned)(channelStore_.selectedIndex()+1));
+ Serial.print(',');
+ Serial.println(fastHeatActive_?1:0);
 }
 void App::serialCommand(uint32_t now){
  if(!Serial.available())return;
