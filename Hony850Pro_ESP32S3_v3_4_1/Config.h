@@ -5,7 +5,7 @@
 #error "Este firmware requiere ESP32-S3 y Arduino-ESP32 3.x."
 #endif
 // ============================================================================
-// HONY 850 PRO ESP32-S3 V3.4.1 - CONFIGURACION PARA EL USUARIO
+// HONY 850 PRO ESP32-S3 V3.4.2 - CONFIGURACION PARA EL USUARIO
 // EDITAR SOLO ESTE BLOQUE PARA CAMBIAR LIMITES/HABILITACIONES.
 // AVISO: la temperatura de salida (~) es ESTIMADA a partir de la sonda interna.
 // Los ensayos externos validan aprox. hasta 300 C, NO hasta 480 C.
@@ -14,9 +14,10 @@
 
 // 1. SALIDAS FISICAS (0=APAGADA, 1=HABILITADA)
 // Nota: MAINS=1 habilita CONJUNTAMENTE el relé y el MOC del calefactor.
-// No activarlo hasta validar corte fisico, control de potencia y aislamiento.
+// Validaciones fisicas reportadas completas: habilitado por defecto.
+// Mantener interlocks, comprobaciones y corte termico independientes.
 #ifndef HONY_ENABLE_MAINS_OUTPUTS
-#define HONY_ENABLE_MAINS_OUTPUTS 0
+#define HONY_ENABLE_MAINS_OUTPUTS 1
 #endif
 // Bomba 220V por MOC3023: ensayos de aire habilitados (modo ya probado).
 #ifndef HONY_ENABLE_PUMP_OUTPUT
@@ -35,6 +36,10 @@
 
 // 3. SOPORTE, BOMBA, ENFRIAMIENTO
 #define HONY_AUTO_START_ON_LIFT              1    // Levantar tras detectar stand = iniciar
+// El click corto de TEMP alterna calefaccion ON/OFF sin apagar la bomba.
+// Si se apaga manualmente, el siguiente ciclo APOYAR+LEVANTAR borra ese
+// apagado temporal y restablece el autoarranque del stand.
+#define HONY_TEMP_CLICK_HEAT_TOGGLE           1
 #define HONY_MIN_AIR_TO_RUN                 20    // AIR 0..19 apaga calor y orden normal de bomba
 #define HONY_COOL_START_OUTLET_C           79.0f // Bomba forzada en estado caliente
 #define HONY_COOL_STOP_OUTLET_C            73.0f // Bomba puede parar tras enfriar
