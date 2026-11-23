@@ -18,7 +18,7 @@ void Boot::tick(uint32_t now,const SensorSample& t,bool zcOk,Hardware::Counters 
  case Stage::Zc:
    if((uint32_t)(now-stageSince_)>=Cfg::BOOT_ZC_MS){
      const uint32_t n=c.edges-zcBaseline_;
-     if(n<80 || n>120 || !zcOk)warnings_|=ZC;
+     if(n<HONY_ZC_BOOT_MIN_PULSES || n>HONY_ZC_BOOT_MAX_PULSES || !zcOk)warnings_|=ZC;
      stage_=(warnings_?Stage::Warnings:Stage::Done);stageSince_=now;
    }
    break;
