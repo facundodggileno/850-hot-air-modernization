@@ -6,9 +6,9 @@ enum class TuneStatus:uint8_t {Idle,Running,Done,Invalid,Timeout};
 class AutoTune {
  public:
   AutoTune();
-  void begin(float targetRaw,uint8_t air,uint32_t now);
+  void begin(float targetOutlet,uint8_t air,uint32_t now);
   void abort();
-  uint8_t tick(float raw,uint32_t now); // duty 0..65, run only when interlocks OK
+  uint8_t tick(float outlet,uint32_t now); // duty 0..65, run only when interlocks OK
   TuneStatus status()const{return status_;}
   uint8_t cycles()const{return cycles_;}
   Gains result()const{return result_;}
