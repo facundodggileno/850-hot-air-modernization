@@ -316,7 +316,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    if(heatRequest_)Hardware::heatOff();
    // Durante NVS evitar las alarmas de control de fase por compatibilidad
    // con el periodo de cache deshabilitada al escribir flash.
-   Hardware::pump(100);
+   Hardware::pump((!stand_ || cooldown_ || heatRequest_) ? 100 : 0);
    const uint8_t next=(uint8_t)((channelStore_.selectedIndex()+1U)%Cfg::CHANNELS);
    const bool committed=channelStore_.select(next);
    const ChannelStore::Preset preset=channelStore_.selectedPreset();
@@ -340,7 +340,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    // si estaba activo, regresar solo despues de nuevo preflujo.
    const bool restart=heatRequest_;
    if(restart)Hardware::heatOff();
-   Hardware::pump(100);
+   Hardware::pump((!stand_ || cooldown_ || heatRequest_) ? 100 : 0);
    channelSaveOK_=channelStore_.saveCurrent(setpoint_,air_);
    if(restart)startFlow(now);
    channelSavedUntil_=now+Cfg::CHANNEL_SAVED_MS;
