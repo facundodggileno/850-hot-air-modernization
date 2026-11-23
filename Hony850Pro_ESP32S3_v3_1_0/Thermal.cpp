@@ -7,7 +7,7 @@ void Thermal::tick(uint32_t now){
   const float dt=lastAt_?(float)(now-lastAt_)/1000.0f:0.25f;
   lastAt_=now;
   const float t=max_.readCelsius();
-  const bool good=(t>=5.0f && t<=700.0f); // NaN/INF tambien quedan rechazados.
+  const bool good=(t>=HONY_INTERNAL_SENSOR_VALID_MIN_C && t<=HONY_INTERNAL_SENSOR_VALID_MAX_C); // NaN/INF tambien quedan rechazados.
   const float prev=s_.lastGood;
   s_.raw=t;s_.lastAccepted=good;
   if(!good){
@@ -17,8 +17,8 @@ void Thermal::tick(uint32_t now){
   }
   spikeUp_=false;spikeDown_=false;
   if(s_.valid && !isnan(prev) && dt>=0.20f && dt<=0.5f){
-    spikeUp_=(t-prev)>42.0f;
-    spikeDown_=(prev-t)>22.0f;
+    spikeUp_=(t-prev)>HONY_TC_RISE_SPIKE_C;
+    spikeDown_=(prev-t)>HONY_TC_DROP_SPIKE_C;
   }
   s_.lastGood=t;s_.lastGoodAt=now;
   s_.outletEst=Cfg::outletEstimate(t);
