@@ -6,7 +6,7 @@ enum class Fault : uint8_t {
   ControlLost=5, Watchdog=6, ZeroCross=7, Stall=8, Lcd=9,
   SelfTest=10, PumpGate=11, ResetLoop=12, EStop=13, TcSpike=14
 };
-enum class View : uint8_t {Normal, PidMenu, TuneSetup, Tuning, PidView, Fault};
+enum class View : uint8_t {Normal, PidMenu, TuneSetup, Tuning, PidView, Fault, Debug};
 enum class ArmStage : uint8_t {Idle, FullFlow, PhaseVerify, Settle, Ready};
 struct Gains { float kp, ki, kd; };
 struct SensorSample {
