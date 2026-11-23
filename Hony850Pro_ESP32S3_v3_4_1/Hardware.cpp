@@ -10,7 +10,7 @@
 // ALIMENTACION: GPIO 3.3V; drivers relé/speaker pueden tener carga a 5V.
 // CONTROL: bomba via fase MOC3023; heater burst ciclos completos MOC3083.
 // NO existe sensor de caudal. AIR% es solo una consigna.
-// SALIDAS DE POTENCIA BLOQUEADAS POR DEFECTO EN Config.h.
+// SALIDAS HABILITADAS POR USUARIO EN Config.h; interlocks siempre activos.
 namespace {
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 gptimer_handle_t timerPump=nullptr;
