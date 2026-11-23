@@ -28,26 +28,32 @@ void Controls::pollButton(Button& b,uint32_t now,bool& shortEvent,
  if(b.stable!=r){
    b.stable=r;
    if(!r){
-     b.pressed=now;
+     // Marca del flanco real; no sumar los 35ms de debounce al tiempo.
+     b.pressed=b.changed;
      b.longSent=false;
      b.holdSent=false;
    }else{
-     if(isAir){
-       // Para AIR, esperar la liberacion antes de enviar AIR largo:
-       // si se mantiene 10s no debe abrir el menu previamente a guardar.
-       if(!b.holdSent){
-         if((uint32_t)(now-b.pressed)>=Cfg::BUTTON_LONG_MS)
-           longEvent=true;
-         else shortEvent=true;
-       }
-     }else if(!b.longSent){
+     if(isAir && !b.holdSent){
+       const uint32_t pressedMs=(uint32_t)(b.changed-b.pressed);
+       // El menu se abre AL SOLTAR tras 1,2s, siempre que sea <10s.
+       // Si el loop no estuvo disponible justo a los 10s, guardar
+       // al soltar tambien (sin generar un segundo evento).
+       if(pressedMs>=Cfg::AIR_SAVE_HOLD_MS){
+         b.holdSent=true;
+         hold10Event=true;
+       }else if(pressedMs>=Cfg::BUTTON_LONG_MS)
+         longEvent=true;
+       else shortEvent=true;
+     }else if(!isAir && !b.longSent){
        shortEvent=true;
      }
    }
  }
  if(!b.stable){
    if(isAir){
-     if(!b.holdSent &&
+     // No considerar un boton YA SOLTADO como pulsacion de 10s
+     // mientras transcurren los 35ms de debounce.
+     if(!r && !b.holdSent &&
         (uint32_t)(now-b.pressed)>=Cfg::AIR_SAVE_HOLD_MS){
        b.holdSent=true;
        b.longSent=true;
