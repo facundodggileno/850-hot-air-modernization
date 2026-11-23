@@ -69,6 +69,10 @@ void Display::render(const Screen& s){
     snprintf(b,17,"ZC:%s RST:%u",
              s.zcOK?"SI":"NO",(unsigned)s.resetReason);
     break;
+  case 6:
+    snprintf(a,17,"ZC TOTAL:%lu",(unsigned long)s.zcTotal);
+    snprintf(b,17,"REJ TOTAL:%lu",(unsigned long)s.rejectedTotal);
+    break;
   default:
     snprintf(a,17,"HEAP:%5luKB",
              (unsigned long)(s.freeHeapBytes/1024UL));
