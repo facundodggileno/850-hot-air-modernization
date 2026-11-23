@@ -6,7 +6,7 @@ namespace {
 int clampInt(int x,int a,int b){return x<a?a:(x>b?b:x);}
 int freeRam(){return (int)ESP.getFreeHeap();}
 }
-App::App():gains_({1.994f,0.168f,1.707f}),lastTuneResult_(TuneStatus::Idle),pidFromEEPROM_(false),ramOK_(true),
+App::App():gains_({2.932f,0.247f,2.510f}),lastTuneResult_(TuneStatus::Idle),pidFromEEPROM_(false),ramOK_(true),
  fault_(Fault::None),view_(View::Normal),setpoint_(250),air_(100),lastAir_(100),
  tuneSet_(250),tuneAir_(100),heatRequest_(false),manualPump_(true),
  cooldown_(false),stand_(true),bothWasDown_(false),duty_(0),pidPage_(0),pidMenuSelection_(0),pidViewFromMenu_(false),standTuneOverride_(false),
@@ -34,7 +34,7 @@ void App::begin(){
  Serial.print(F("RESET_FLAGS="));Serial.println(Hardware::resetReason(),HEX);
  Serial.print(F("SRAM_FREE="));Serial.println(freeRam());
  Serial.print(F("PID_NVS="));Serial.println(pidFromEEPROM_?1:0);
- Serial.println(F("ms,raw,corr,sp,air,pump,duty,heat,arm,fault,zc,boot,ram,tune"));
+ Serial.println(F("ms,outlet_est_c,sp,air,pump,duty,heat,arm,fault,zc,boot,ram,tune"));
  chirp(2000,60);
 }
 void App::trip(Fault why,uint32_t now){
@@ -48,7 +48,7 @@ void App::trip(Fault why,uint32_t now){
  cooldown_=true;
  Serial.print(F("FAULT,"));Serial.print((unsigned)fault_);
  Serial.print(',');Serial.print(now);
- Serial.print(F(",RAW="));Serial.println(thermal_.sample().raw,2);
+ Serial.print(F(",OUT_EST="));Serial.println(thermal_.sample().outletEst,2);
  chirp(360,300);
 }
 void App::cooldownStart(){
@@ -98,9 +98,8 @@ void App::flowTick(uint32_t now){
 void App::beginHeat(uint32_t now){
  if(!Cfg::setpointWithinRawLimit(setpoint_)){
    Hardware::heatOff();
-   Serial.printf("START_DENIED: SETPOINT %dC => %.1fC RAW, limite %.1fC RAW (margen %.1f)\n",
-                 setpoint_,Cfg::rawTarget(setpoint_),Cfg::RAW_HARD_LIMIT,
-                 Cfg::RAW_TARGET_MARGIN);
+   Serial.printf("START_DENIED: %d C fuera de rango calibrado (max %d C de salida)\n",
+                 setpoint_,Cfg::MAX_CALIBRATED_OUTLET_C);
    chirp(400,160);return;
  }
  if(!Cfg::MAINS_OUTPUTS_ENABLED || !Hardware::ready() ||
@@ -115,8 +114,8 @@ void App::beginHeat(uint32_t now){
 void App::beginTune(uint32_t now){
   if(!Cfg::setpointWithinRawLimit(tuneSet_)){
     Hardware::heatOff();
-    Serial.printf("AUTOTUNE_DENIED: SETPOINT %dC => %.1fC RAW; margen insuficiente\n",
-                  tuneSet_,Cfg::rawTarget(tuneSet_));
+    Serial.printf("AUTOTUNE_DENIED: %d C fuera de rango calibrado (max %d C)\n",
+                  tuneSet_,Cfg::MAX_CALIBRATED_OUTLET_C);
     chirp(420,200);return;
   }
   if(!Cfg::MAINS_OUTPUTS_ENABLED || !Hardware::ready() || stand_ ||
@@ -130,7 +129,7 @@ void App::beginTune(uint32_t now){
   // El unico permiso excepcional de stand se concede en este instante
   // y se revoca en finishTune(), cooldownStart() y trip().
   standTuneOverride_=false;
-  tune_.begin(Cfg::rawTarget(setpoint_),(uint8_t)air_,now);
+  tune_.begin((float)setpoint_,(uint8_t)air_,now);
  lastTuneResult_=TuneStatus::Running;
  view_=View::Tuning;startFlow(now);chirp(2100,90);
  Serial.println(F("AUTOTUNE START 3 CICLOS"));
@@ -151,13 +150,13 @@ void App::finishTune(uint32_t now){
    Serial.print(F("AUTOTUNE FIN,STATUS="));Serial.println((unsigned)result);
    chirp(430,220);
  }
- if(!thermal_.fresh(now) || thermal_.sample().raw>=Cfg::RAW_COOL_START)
+ if(!thermal_.fresh(now) || thermal_.sample().outletEst>=Cfg::OUTLET_COOL_START_C)
    cooldownStart();
  view_=View::PidView;pidPage_=0;pidViewFromMenu_=true;
 }
 bool App::canClearFault(uint32_t now)const{
  const SensorSample& s=thermal_.sample();
- return thermal_.fresh(now) && s.raw<=Cfg::RAW_COOL_STOP &&
+ return thermal_.fresh(now) && s.outletEst<=Cfg::OUTLET_COOL_STOP_C &&
         Hardware::zcHealthy() && !Hardware::stalled();
 }
 void App::clearFault(uint32_t now){
@@ -240,7 +239,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    setpoint_=clampInt(setpoint_+e.tempStep*Cfg::TEMP_STEP,Cfg::TEMP_MIN,Cfg::TEMP_MAX);
    if(heatRequest_ && !Cfg::setpointWithinRawLimit(setpoint_)){
      cooldownStart();
-     Serial.println(F("COOLDOWN: SETPOINT SUPERA LIMITE RAW SEGURO"));
+     Serial.println(F("COOLDOWN: CONSIGNA FUERA DE CALIBRACION"));
    }
    pid_.reset();safety_.reset(now);
  }
@@ -259,7 +258,7 @@ void App::handleInput(const InputFrame& e,uint32_t now){
    else beginHeat(now);
  }
  if(e.airShort){
-   if(!heatRequest_ && !(thermal_.fresh(now) && thermal_.sample().raw>=Cfg::RAW_COOL_START)){
+   if(!heatRequest_ && !(thermal_.fresh(now) && thermal_.sample().outletEst>=Cfg::OUTLET_COOL_START_C)){
      manualPump_=!manualPump_;
      if(manualPump_ && air_==0)air_=lastAir_;
    }
@@ -285,25 +284,25 @@ bool App::allowHeat(uint32_t now)const{
 uint8_t App::pumpWanted(uint32_t now)const{
  const SensorSample& t=thermal_.sample();
  if(!boot_.done() || !thermal_.fresh(now))return 100;
- if(fault_!=Fault::None)return (t.raw>Cfg::RAW_COOL_STOP)?100:0;
+ if(fault_!=Fault::None)return (t.outletEst>Cfg::OUTLET_COOL_STOP_C)?100:0;
  if(cooldown_)return 100;
  if(heatRequest_){
    if(arm_==ArmStage::FullFlow)return 100;
    return (uint8_t)air_;
  }
- if(t.raw>=Cfg::RAW_COOL_START)return 100;
+ if(t.outletEst>=Cfg::OUTLET_COOL_START_C)return 100;
  if(stand_)return 0;
  return manualPump_?(uint8_t)air_:0;
 }
 void App::controlTick(uint32_t now){
  const SensorSample& t=thermal_.sample();
  // Arranque automatico con histéresis cuando no hay calor ni bomba manual.
- // Una vez iniciado, mantiene 100% hasta RAW <= 100 C (aprox 68 C corregidos).
+ // Una vez iniciado, mantiene 100% hasta alcanzar el umbral de salida estimada.
  if(!cooldown_ && !heatRequest_ && !manualPump_ && fault_==Fault::None &&
-    thermal_.fresh(now) && t.raw>=Cfg::RAW_COOL_START){
+    thermal_.fresh(now) && t.outletEst>=Cfg::OUTLET_COOL_START_C){
    cooldown_=true;
  }
- if(cooldown_ && thermal_.fresh(now) && t.raw<=Cfg::RAW_COOL_STOP){
+ if(cooldown_ && thermal_.fresh(now) && t.outletEst<=Cfg::OUTLET_COOL_STOP_C){
    cooldown_=false;manualPump_=false;chirp(2200,65);
  }
  Hardware::pump(pumpWanted(now));
@@ -312,7 +311,7 @@ void App::controlTick(uint32_t now){
  }
  const SafetyInput si={heatRequest_,allowHeat(now),view_==View::Tuning,
    thermal_.fresh(now),Hardware::zcHealthy(),Hardware::stalled(),
-   thermal_.bigRise(),thermal_.bigDrop(),t.raw,Cfg::rawTarget(setpoint_),duty_};
+   thermal_.bigRise(),thermal_.bigDrop(),t.raw,t.outletEst,(float)setpoint_,duty_};
  const Fault unsafe=safety_.check(si,now);
  if(unsafe!=Fault::None){trip(unsafe,now);return;}
  if(!allowHeat(now)){
@@ -321,10 +320,10 @@ void App::controlTick(uint32_t now){
  if(view_==View::Tuning){
    if(lastTune_ && (uint32_t)(now-lastTune_)<Cfg::PID_MS)return;
    lastTune_=now;
-   duty_=tune_.tick(t.raw,now);
+   duty_=tune_.tick(t.outletEst,now);
    if(tune_.status()!=TuneStatus::Running){finishTune(now);return;}
  }else{
-   const uint8_t out=pid_.update(t.raw,t.controlled,t.rate,Cfg::rawTarget(setpoint_),(uint8_t)air_,now);
+   const uint8_t out=pid_.update(t.outletEst,t.outletControlled,t.outletRate,(float)setpoint_,(uint8_t)air_,now);
    if(out!=255)duty_=out;
  }
  Hardware::heatDuty(duty_);
@@ -363,8 +362,7 @@ void App::serialTick(uint32_t now){
  zcPreviousMs=now;zcPreviousEdges=zc.edges;zcPreviousRejected=zc.rejected;
  const SensorSample& s=thermal_.sample();
  Serial.print(now);Serial.print(',');
- Serial.print(s.raw,1);Serial.print(',');
- if(s.valid)Serial.print(s.raw*Cfg::CORRECTION,1);
+ if(s.valid)Serial.print(s.outletEst,1);
  else Serial.print(F("NaN"));
  Serial.print(',');Serial.print(setpoint_);Serial.print(',');
  Serial.print(air_);Serial.print(',');Serial.print(Hardware::pumpCommand());Serial.print(',');
@@ -377,14 +375,14 @@ void App::serialTick(uint32_t now){
 void App::serialCommand(uint32_t now){
  if(!Serial.available())return;
  const char ch=(char)Serial.read();
- if(ch=='?')Serial.println(F("P=PID, R=RAW, ?=help; sin acciones de potencia por Serial"));
+ if(ch=='?')Serial.println(F("P=PID, T=TEMP_SALIDA_EST, ?=help; sin acciones de potencia por Serial"));
  else if(ch=='P'){
    Serial.print(F("KP="));Serial.print(gains_.kp,4);
    Serial.print(F(" KI="));Serial.print(gains_.ki,4);
    Serial.print(F(" KD="));Serial.print(gains_.kd,4);
    Serial.print(F(" EEPROM="));Serial.println(pidFromEEPROM_?1:0);
- }else if(ch=='R'){
-   Serial.print(F("RAW="));Serial.print(thermal_.sample().raw,2);
+ }else if(ch=='T'){
+   Serial.print(F("OUT_EST="));Serial.print(thermal_.sample().outletEst,2);
    Serial.print(F(" VALID="));Serial.print(thermal_.sample().valid?1:0);
    Serial.print(F(" COUNT="));Serial.println(thermal_.sample().consecutive);
  }
