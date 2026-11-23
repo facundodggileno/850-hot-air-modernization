@@ -31,6 +31,9 @@ class App {
   View view_;
   int setpoint_,air_,lastAir_,tuneSet_,tuneAir_;
   bool heatRequest_,cooldown_,stand_,bothWasDown_,standArmed_;
+  // Se activa al apagar calor con TEMP; se borra al volver a apoyar
+  // el mango y al encender calor manualmente.
+  bool manualHeatOff_;
   bool channelSaveOK_;
   uint32_t channelSavedUntil_;
   bool readyBeepArmed_,fastHeatActive_;
