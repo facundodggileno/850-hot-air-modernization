@@ -5,7 +5,7 @@
 #error "Este firmware requiere ESP32-S3 y Arduino-ESP32 3.x."
 #endif
 // ============================================================================
-// HONY 850 PRO ESP32-S3 V3.2.0 - CONFIGURACION PARA EL USUARIO
+// HONY 850 PRO ESP32-S3 V3.3.0 - CONFIGURACION PARA EL USUARIO
 // EDITAR SOLO ESTE BLOQUE PARA CAMBIAR LIMITES/HABILITACIONES.
 // AVISO: la temperatura de salida (~) es ESTIMADA a partir de la sonda interna.
 // Los ensayos externos validan aprox. hasta 300 C, NO hasta 480 C.
@@ -46,9 +46,16 @@
 #define HONY_PUMP_GATE_MAX_IMBALANCE           4  // Diferencia entre pulsos ON y OFF
 
 // 4. CANALES PERSISTENTES NVS
-#define HONY_CHANNEL_COUNT                   5   // CH1..CH5
+#define HONY_CHANNEL_COUNT                   3   // CH1..CH3
 #define HONY_AIR_SAVE_HOLD_MS           10000UL // Pulsacion AIR sostenida, sin menu intermedio
 #define HONY_CHANNEL_SAVE_FEEDBACK_MS     1800UL
+
+// 4.b AVISO DE TEMPERATURA ALCANZADA (solo durante calentamiento normal)
+#define HONY_READY_BEEP_ENABLED               1
+#define HONY_READY_BAND_C                   5.0f // +/-5 C de salida estimada
+#define HONY_READY_STABLE_MS               1250UL // Debe sostenerse en banda
+#define HONY_READY_BEEP_FREQ_HZ             2450
+#define HONY_READY_BEEP_DURATION_MS          140
 
 // 5. PROTECCIONES TERMICAS (fuera del menu)
 #define HONY_TC_RISE_SPIKE_C               42.0f // Pico interno en una muestra
@@ -97,12 +104,22 @@
 #define HONY_ESTOP_HOLD_TIME_MS            120UL // Ambos encoders, E-STOP
 
 // 7. TIEMPOS DE MUESTREO / PANTALLA. Modificar con cuidado.
-#define HONY_SAMPLE_TC_MS                  250UL
+#define HONY_SAMPLE_TC_MS                  250UL // MAX6675 convierte en hasta ~220ms
+// No bajar de 250ms; adelantar la lectura devuelve la misma conversion.
 #define HONY_SAMPLE_STALE_MS               750UL
 #define HONY_SAMPLE_PID_MS                 250UL
-#define HONY_UPDATE_LCD_MS                 200UL
+#define HONY_UPDATE_LCD_MS                 150UL // ~6.7Hz max; solo se envian caracteres modificados
 #define HONY_UPDATE_SERIAL_MS             1000UL
 
+#if HONY_SAMPLE_TC_MS < 250UL
+#error "MAX6675: intervalo minimo 250ms entre lecturas completas."
+#endif
+#if HONY_UPDATE_LCD_MS < 100UL
+#error "LCD1602 sin R/W: actualizar cada 100ms o mas, sin saturar el bus."
+#endif
+#if HONY_AIR_SAVE_HOLD_MS <= 1200UL
+#error "Guardado de canal AIR debe durar mas de 1.2s del menu."
+#endif
 #if HONY_CHANNEL_COUNT < 1 || HONY_CHANNEL_COUNT > 9
 #error "Cantidad de canales entre 1 y 9 (LCD1602)."
 #endif
@@ -184,7 +201,7 @@ constexpr uint16_t PUMP_DELAY_20_US=7600, PUMP_DELAY_95_US=3000;
 constexpr uint16_t PUMP_MAX_DELAY_US=9000;
 constexpr uint32_t BUTTON_LONG_MS=1200, BUTTON_DEBOUNCE_MS=35;
 constexpr uint32_t STAND_DEBOUNCE_MS=HONY_STAND_DEBOUNCE_CONFIG_MS, ESTOP_HOLD_MS=HONY_ESTOP_HOLD_TIME_MS;
-constexpr uint8_t TUNE_CYCLES=3, DEBUG_PAGES=8, CHANNELS=HONY_CHANNEL_COUNT;
+constexpr uint8_t TUNE_CYCLES=3, DEBUG_PAGES=9, CHANNELS=HONY_CHANNEL_COUNT;
 constexpr uint32_t AIR_SAVE_HOLD_MS=HONY_AIR_SAVE_HOLD_MS;
 constexpr uint32_t CHANNEL_SAVED_MS=HONY_CHANNEL_SAVE_FEEDBACK_MS;
 constexpr bool AUTO_START_ON_LIFT=(HONY_AUTO_START_ON_LIFT!=0);
