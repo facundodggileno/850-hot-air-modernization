@@ -23,9 +23,16 @@ constexpr bool MAINS_OUTPUTS_ENABLED = (HONY_ENABLE_MAINS_OUTPUTS != 0);
 constexpr bool PUMP_OUTPUTS_ENABLED = (HONY_ENABLE_PUMP_OUTPUT != 0) || MAINS_OUTPUTS_ENABLED;
 
 constexpr float CORRECTION=0.68f;     // C indicados = MAX RAW * 0.68 (calibracion empirica)
-constexpr int TEMP_MIN=80, TEMP_MAX=360, TEMP_STEP=5;
+constexpr int TEMP_MIN=80, TEMP_MAX=480, TEMP_STEP=5;
 constexpr uint8_t AIR_MIN_HEAT=20, AIR_STEP=5;
-constexpr float RAW_HARD_LIMIT=595.0f; // No confundir con temperatura de boquilla.
+constexpr float RAW_HARD_LIMIT=595.0f; // Límite RAW de protección, NO aumentar sin calibración.
+// El selector llega a 480C, pero el calentamiento se bloquea si el
+// objetivo RAW supera el umbral dejando 35C RAW de margen.
+// 480C mostrados / 0.68 = 706C RAW: no son operables con los límites actuales.
+constexpr float RAW_TARGET_MARGIN=35.0f;
+inline bool setpointWithinRawLimit(int setC){
+  return ((float)setC/CORRECTION)<(RAW_HARD_LIMIT-RAW_TARGET_MARGIN);
+}
 // Cooldown: encender/reforzar al llegar a 110 RAW, detener en 100 RAW (68 C corregidos).
 constexpr float RAW_COOL_START=110.0f, RAW_COOL_STOP=100.0f;
 constexpr uint32_t TC_SAMPLE_MS=250, TC_STALE_MS=750;
