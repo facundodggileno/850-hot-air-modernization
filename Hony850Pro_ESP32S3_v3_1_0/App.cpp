@@ -43,7 +43,7 @@ void App::begin(){
  Serial.printf("CANAL=CH%u TEMP=%d AIR=%d NVS=%d\n",
    (unsigned)(channelStore_.selectedIndex()+1),setpoint_,air_,
    channelStore_.presetsLoadedFromNvs()?1:0);
- Serial.println(F("ms,outlet_est_c,sp,air,pump,duty,heat,arm,fault,zc,boot,ram,tune"));
+ Serial.println(F("ms,outlet_est_c,sp,air,pump,duty,heat,arm,fault,zc,boot,ram,tune,channel"));
  chirp(2000,60);
 }
 void App::trip(Fault why,uint32_t now){
@@ -356,27 +356,34 @@ bool App::allowHeat(uint32_t now)const{
 }
 uint8_t App::pumpWanted(uint32_t now)const{
  const SensorSample& t=thermal_.sample();
- if(!boot_.done() || !thermal_.fresh(now))return 100;
- if(fault_!=Fault::None)return (t.outletEst>Cfg::OUTLET_COOL_STOP_C)?100:0;
+ // Fallo de termocupla: la salida del aire se fuerza al maximo hasta
+ // conocer una temperatura segura; esta condicion es una excepcion
+ // deliberada al mando del usuario/stand.
+ if(!thermal_.fresh(now))return 100;
+ if(!boot_.done())return t.outletEst>=Cfg::OUTLET_COOL_START_C?100:0;
+ if(fault_!=Fault::None)
+   return t.outletEst>Cfg::OUTLET_COOL_STOP_C?100:0;
  if(cooldown_)return 100;
  if(heatRequest_){
    if(arm_==ArmStage::FullFlow)return 100;
    return (uint8_t)air_;
  }
+ // Termica prioritaria, incluso apoyado o con AIR menor al minimo.
  if(t.outletEst>=Cfg::OUTLET_COOL_START_C)return 100;
- if(stand_)return 0;
- return manualPump_?(uint8_t)air_:0;
+ // En frio, el stand y AIR<20 son el UNICO ON/OFF de aire.
+ if(stand_ || !standArmed_ || air_<Cfg::AIR_MIN_HEAT)return 0;
+ return (uint8_t)air_;
 }
 void App::controlTick(uint32_t now){
  const SensorSample& t=thermal_.sample();
  // Arranque automatico con histéresis cuando no hay calor ni bomba manual.
  // Una vez iniciado, mantiene 100% hasta alcanzar el umbral de salida estimada.
- if(!cooldown_ && !heatRequest_ && !manualPump_ && fault_==Fault::None &&
+ if(!cooldown_ && !heatRequest_ && fault_==Fault::None &&
     thermal_.fresh(now) && t.outletEst>=Cfg::OUTLET_COOL_START_C){
    cooldown_=true;
  }
  if(cooldown_ && thermal_.fresh(now) && t.outletEst<=Cfg::OUTLET_COOL_STOP_C){
-   cooldown_=false;manualPump_=false;chirp(2200,65);
+   cooldown_=false;chirp(2200,65);
  }
  Hardware::pump(pumpWanted(now));
  if(fault_!=Fault::None || !boot_.done()){
@@ -427,6 +434,10 @@ void App::displayTick(uint32_t now){
  s.setpoint=setpoint_;s.air=air_;s.tuneSet=tuneSet_;s.tuneAir=tuneAir_;
  s.duty=duty_;s.cycles=tune_.cycles();s.pidPage=pidPage_;
  s.pidMenuSelection=pidMenuSelection_;
+ s.channel=channelStore_.selectedIndex();
+ s.channelSaveNotice=channelSavedUntil_!=0 &&
+                     (int32_t)(now-channelSavedUntil_)<0;
+ s.channelSaveOK=channelSaveOK_;
  s.debugPage=debugPage_;
  s.zcAcceptedPerSec=diagAcceptedPerSec_;
  s.zcRejectedPerSec=diagRejectedPerSec_;
@@ -480,7 +491,9 @@ void App::serialTick(uint32_t now){
  Serial.print((unsigned)arm_);Serial.print(',');Serial.print((unsigned)fault_);Serial.print(',');
  Serial.print(Hardware::zcHealthy()?1:0);Serial.print(',');
  Serial.print((unsigned)boot_.stage());Serial.print(',');
- Serial.print(freeRam());Serial.print(',');Serial.println((unsigned)tune_.cycles());
+ Serial.print(freeRam());Serial.print(',');
+ Serial.print((unsigned)tune_.cycles());Serial.print(',');
+ Serial.println((unsigned)(channelStore_.selectedIndex()+1));
 }
 void App::serialCommand(uint32_t now){
  if(!Serial.available())return;
