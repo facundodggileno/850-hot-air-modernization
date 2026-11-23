@@ -10,6 +10,7 @@ uint8_t crc(const PidStore::Record& r) {
   return c;
 }
 }
+// pidout1 is independent of earlier internal RAW Celsius gains.
 namespace PidStore {
 static_assert(sizeof(Record)==16,"NVS PID layout inesperado");
 bool valid(const Gains& g) {
@@ -20,8 +21,8 @@ bool load(Gains& g) {
  Preferences store;
  if(!store.begin("hony850",true))return false;
  Record r={};
- const bool ok=store.getBytesLength("pid")==sizeof(r) &&
-   store.getBytes("pid",&r,sizeof(r))==sizeof(r);
+ const bool ok=store.getBytesLength("pidout1")==sizeof(r) &&
+   store.getBytes("pidout1",&r,sizeof(r))==sizeof(r);
  store.end();
  if(!ok||r.magic!=0x8504||r.version!=1||r.checksum!=crc(r))return false;
  const Gains candidate={r.kp,r.ki,r.kd};
@@ -34,7 +35,7 @@ bool save(const Gains& g) {
  r.checksum=crc(r);
  Preferences store;
  if(!store.begin("hony850",false))return false;
- const bool ok=store.putBytes("pid",&r,sizeof(r))==sizeof(r);
+ const bool ok=store.putBytes("pidout1",&r,sizeof(r))==sizeof(r);
  store.end();
  return ok;
 }
