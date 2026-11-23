@@ -4,7 +4,7 @@
 Safety::Safety():graceTo_(0),runawaySince_(0),noRiseSince_(0),inBandSince_(0),
  lostSince_(0),noRiseStart_(0),stable_(false){}
 void Safety::reset(uint32_t now){
- graceTo_=now+5000UL;runawaySince_=0;noRiseSince_=0;
+ graceTo_=now+HONY_GRACE_AFTER_START_MS;runawaySince_=0;noRiseSince_=0;
  inBandSince_=0;lostSince_=0;noRiseStart_=0;stable_=false;
 }
 Fault Safety::check(const SafetyInput& i,uint32_t now){
@@ -21,28 +21,28 @@ Fault Safety::check(const SafetyInput& i,uint32_t now){
  }
  const float err=i.targetC-i.temperatureC;
  // El autotune no tiene gracia termica: un sobrepaso grave corta ya.
- if(i.tuning && i.temperatureC>=i.targetC+20.0f)return Fault::Runaway;
- const float limit=25.0f;
+ if(i.tuning && i.temperatureC>=i.targetC+HONY_TUNE_OVERSHOOT_C)return Fault::Runaway;
+ const float limit=HONY_OVERSHOOT_C;
  if(i.temperatureC>=i.targetC+limit && (int32_t)(now-graceTo_)>=0){
    if(!runawaySince_)runawaySince_=now;
-   if((uint32_t)(now-runawaySince_)>=750UL)return Fault::Runaway;
+   if((uint32_t)(now-runawaySince_)>=HONY_OVERSHOOT_CONFIRM_MS)return Fault::Runaway;
  }else runawaySince_=0;
  if(i.tuning)return Fault::None;
  if((int32_t)(now-graceTo_)<0)return Fault::None;
- if(i.duty>=25 && err>=14){
+ if(i.duty>=HONY_NO_RISE_DUTY_MIN && err>=HONY_NO_RISE_ERROR_C){
    if(!noRiseSince_){noRiseSince_=now;noRiseStart_=i.temperatureC;}
-   if((uint32_t)(now-noRiseSince_)>=8000UL){
-     if(i.temperatureC-noRiseStart_<2.0f)return Fault::NoRise;
+   if((uint32_t)(now-noRiseSince_)>=HONY_NO_RISE_WINDOW_MS){
+     if(i.temperatureC-noRiseStart_<HONY_NO_RISE_MIN_DELTA_C)return Fault::NoRise;
      noRiseSince_=now;noRiseStart_=i.temperatureC;
    }
  }else noRiseSince_=0;
- if(fabs(err)<=7){
+ if(fabs(err)<=HONY_STABLE_ERROR_BAND_C){
    if(!inBandSince_)inBandSince_=now;
-   if((uint32_t)(now-inBandSince_)>=10000UL)stable_=true;
+   if((uint32_t)(now-inBandSince_)>=HONY_STABLE_PERIOD_MS)stable_=true;
  }else inBandSince_=0;
- if(stable_ && fabs(err)>=28){
+ if(stable_ && fabs(err)>=HONY_CONTROL_LOST_ERROR_C){
    if(!lostSince_)lostSince_=now;
-   if((uint32_t)(now-lostSince_)>=10000UL)return Fault::ControlLost;
+   if((uint32_t)(now-lostSince_)>=HONY_CONTROL_LOST_PERIOD_MS)return Fault::ControlLost;
  }else lostSince_=0;
  return Fault::None;
 }
