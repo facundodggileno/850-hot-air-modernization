@@ -10,10 +10,38 @@ bool Display::begin(){
  return ready_;
 }
 void Display::line(uint8_t r,const char* s){
- if(!ready_)return;
+ if(!ready_ || r>=2)return;
  char b[17];memset(b,' ',16);b[16]=0;
- uint8_t n=strlen(s);if(n>16)n=16;
- memcpy(b,s,n);lcd_.setCursor(0,r);lcd_.print(b);
+ size_t n=strlen(s);if(n>16)n=16;
+ memcpy(b,s,n);
+ if(rowValid_[r] && memcmp(b,lastPrinted_[r],16)==0)return;
+ uint8_t changed=0,spans=0;
+ for(uint8_t i=0;i<16;){
+   if(rowValid_[r] && b[i]==lastPrinted_[r][i]){i++;continue;}
+   spans++;
+   while(i<16 && (!rowValid_[r] || b[i]!=lastPrinted_[r][i])){
+     i++;changed++;
+   }
+ }
+ // Si son muchos cambios separados, una sola transferencia es mas barata.
+ if(!rowValid_[r] || changed>=10 || spans>=4){
+   lcd_.setCursor(0,r);lcd_.print(b);
+ }else{
+   // Solo bloques modificados. hd44780_I2Cexp gestiona temporizaciones
+   // en modo write-only: R/W del LCD permanece fisicamente a GND.
+   for(uint8_t i=0;i<16;){
+     if(b[i]==lastPrinted_[r][i]){i++;continue;}
+     const uint8_t start=i;
+     while(i<16 && b[i]!=lastPrinted_[r][i])i++;
+     char segment[17];
+     const uint8_t len=i-start;
+     memcpy(segment,b+start,len);
+     segment[len]=0;
+     lcd_.setCursor(start,r);lcd_.print(segment);
+   }
+ }
+ memcpy(lastPrinted_[r],b,17);
+ rowValid_[r]=true;
 }
 void Display::tempLine(char* b,const SensorSample& s,bool count){
  // La salida es una ESTIMACION calibrada, no una sonda fisica de boquilla.
