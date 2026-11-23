@@ -175,6 +175,8 @@ void Display::render(const Screen& s){
      else strcpy(b,"ERROR GUARDAR CH");
    }else if(s.preflow)
      snprintf(b,17,"PRE-FLOW %us",(unsigned)s.preflowSeconds);
+   else if(s.heatRequest && s.fastHeat)
+     snprintf(b,17,"FAST HEAT %3u%%",(unsigned)s.duty);
    else if(s.heatRequest)
      snprintf(b,17,"HEAT %3u%%",(unsigned)s.duty);
    else if(s.cooldown)strcpy(b,"COOLDOWN AIR100");
