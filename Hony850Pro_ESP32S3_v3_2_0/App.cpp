@@ -498,6 +498,9 @@ void App::displayTick(uint32_t now){
  s.zcInput=digitalRead(Cfg::ZC)==HIGH;
  s.tcFresh=thermal_.fresh(now);
  s.tcAgeMs=s.sensor->lastGoodAt?(uint32_t)(now-s.sensor->lastGoodAt):0;
+ s.tcPeriodMs=thermal_.samplePeriodMs();
+ s.tcReadUs=thermal_.readDurationUs();
+ s.pidPeriodMs=lastPidPeriodMs_;
  s.pumpCmd=Hardware::pumpCommand();
  s.relayOn=digitalRead(Cfg::RELAY)==HIGH;
  s.standOn=stand_;
