@@ -1,5 +1,15 @@
 # Hony 850 Pro
 
+## ESP32-S3 — primera versión de referencia estable (V3.4.2)
+
+La plataforma vigente es **ESP32-S3 V3.4.2**, declarada estable por el autor el 22/11/2026. [Firmware ESP32](firmware/esp32/Hony850Pro_ESP32S3_v3_4_2) · [Diagrama de conexiones SVG](hardware/esp32-s3-wiring-v3.4.2.svg) · [Pinout real](hardware/esp32-s3-pinout-stable.md) · [Release notes](docs/releases/esp32-v3.4.2.md).
+
+**GPIO reales:** LCD SDA/SCL 1/2; ZC 4; bomba 5; calefactor 6; relé 7; buzzer 8; stand 9; TEMP 10–12; AIR 13–15; MAX6675 16–18. **No utilizar el pinout Nano para el ESP32.**
+
+Se conservan tres canales NVS, FAST HEAT, TEMP corto para alternar calor/solo aire y reactivación por stand. `HONY_ENABLE_MAINS_OUTPUTS=1` según decisión del autor. Estabilidad es designación de baseline del proyecto, **no homologación ni ensayo independiente**. No existe ni se incorporará sensor de caudal o de paso de aire.
+
+## Historial del proyecto: Arduino Nano V2.0.5
+
 **Modernización digital de una estación de aire caliente Hony 850 con Arduino Nano, control PID y documentación del prototipo real.**
 
 [English](README.en.md) · [Construcción y verificación](docs/BUILD_ES.md) · [Esquema eléctrico V2.0.5](hardware/Hony850Pro_Esquematico_Conexiones_Completas_V2_0_5.pdf) · [Conexiones](hardware/WIRING_ES.md) · [Componentes](bom/BOM.csv) · [Firmware](firmware/current/Hony850Pro_Nano_Modular_v2_0_5) · [Historial](CHANGELOG.md)

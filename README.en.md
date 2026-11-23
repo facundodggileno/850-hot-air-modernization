@@ -1,5 +1,13 @@
 # Hony 850 Pro — Digital hot-air rework station retrofit
 
+## Current stable ESP32-S3 baseline — V3.4.2
+
+The first author-designated stable ESP32-S3 reference is [firmware V3.4.2](firmware/esp32/Hony850Pro_ESP32S3_v3_4_2). See [the source-accurate GPIO wiring diagram](hardware/esp32-s3-wiring-v3.4.2.svg), [stable pin map](hardware/esp32-s3-pinout-stable.md), and [release notes](docs/releases/esp32-v3.4.2.md). The older Arduino Nano V2.0.5 material below is retained as **historical documentation only**, using a different pinout.
+
+The author reports stable operation and external outlet measurement at 480 °C; independent complete hardware/firmware certification is not claimed. Power outputs default to enabled at the author's request. No airflow sensor is installed or planned.
+
+## Historical Arduino Nano stage
+
 **Real Hony 850 prototype retrofitted with an Arduino Nano, PID temperature control, original diaphragm pump and modular V2.0.5 firmware.**
 
 [Español](README.md) · [Build / verification (Spanish)](docs/BUILD_ES.md) · [12-page schematic (PDF)](hardware/Hony850Pro_Esquematico_Conexiones_Completas_V2_0_5.pdf) · [Firmware](firmware/current/Hony850Pro_Nano_Modular_v2_0_5) · [Parts list](bom/BOM.csv)

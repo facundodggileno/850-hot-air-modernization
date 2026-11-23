@@ -1,5 +1,15 @@
 # Registro de versiones
 
+## 2026-11-22 — ESP32-S3 V3.4.2 (primera release estable de ESP32)
+
+- Versión de referencia estable seleccionada por el autor. [Notas completas](docs/releases/esp32-v3.4.2.md).
+- Firmware completo de 25 archivos en [firmware/esp32](firmware/esp32/Hony850Pro_ESP32S3_v3_4_2); etapa histórica Nano conservada.
+- [Diagrama SVG exacto de los GPIO](hardware/esp32-s3-wiring-v3.4.2.svg) y [CSV](hardware/esp32-s3-pinout-stable.csv) derivados de `Config.h`. Los GPIO de la primera ilustración se corrigieron.
+- TEMP corto alterna calefactor y modo solo aire sin apagar bomba; apoyar y levantar mango invalida OFF manual. Se puede reencender sin esperar enfriamiento completo, con preflujo.
+- Tres canales NVS, AIR corto/largo/10 s, FAST HEAT, LCD optimizado, MAX6675 y PID sincronizado, buzzer de consigna y protecciones.
+- Potencia y bomba habilitadas por defecto; consigna 480 °C, RAW 750 °C, rango MAX hasta 800 °C y margen 35 °C. Sin sensores de caudal.
+- Ensayo externo 480 °C estable reportado; curva RAW/salida de alta temperatura aún extrapolada.
+
 El historial **no** significa que todas las versiones pasaron el mismo nivel de ensayos.
 
 ## 2026-11-19 — V2.0.5 (último código publicado, pendiente de validación física integral)

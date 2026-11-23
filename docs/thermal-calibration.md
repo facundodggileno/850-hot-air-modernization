@@ -1,5 +1,13 @@
 # Calibración térmica y PID
 
+## Situación vigente del ESP32-S3 V3.4.2
+
+En la release ESP32 la consigna máxima es **480 °C de salida estimada**, con corte físico supervisado por software sobre lectura interna RAW de **750 °C**, lecturas válidas del MAX6675 hasta **800 °C** y margen de autorización interna **35 °C**.
+
+El autor informó una medición externa de salida de **480 °C reales y estables**. Esa prueba todavía no aporta un par de lecturas MAX6675 RAW/temperatura de salida simultáneo, por lo que el tramo del modelo empírico por encima de los 300 °C de salida sigue siendo extrapolado (pendiente de recalibración). La extrapolación actual estima unos 705 °C internos para una consigna de 480 °C.
+
+**Los valores de 595 °C RAW y el firmware de Arduino Nano descritos más abajo son históricos y no reflejan las constantes ESP32 actuales.**
+
 La termocupla mide la zona donde fue montada, no directamente la temperatura exacta del aire en la boquilla. La modificación del mango incorporó un calefactor Yihua 8786D y reubicó el punto de medida aproximadamente 5 mm. Una conexión/cableado inadecuado de la termocupla puede causar diferencias significativas.
 
 ## Conversión observacional

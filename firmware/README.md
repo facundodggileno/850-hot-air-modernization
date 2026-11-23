@@ -1,5 +1,11 @@
 # Firmware Hony 850 Pro
 
+## Línea vigente — ESP32-S3 V3.4.2
+
+La [primera versión estable ESP32-S3](esp32/Hony850Pro_ESP32S3_v3_4_2) se encuentra en `firmware/esp32`, junto con [instrucciones](esp32/README.md), [pinout real](../hardware/esp32-s3-pinout-stable.md) y [notas de release](../docs/releases/esp32-v3.4.2.md). Requiere Arduino-ESP32 **3.x**; conservar los 25 archivos juntos.
+
+La sección Arduino Nano V2.0.5 siguiente se conserva **solo como histórico** y utiliza otro pinout.
+
 ## Versión actual
 
 **[V2.0.5 — Arduino Nano, código modular](current/Hony850Pro_Nano_Modular_v2_0_5/)**. Conservar los **25 archivos juntos** dentro de `Hony850Pro_Nano_Modular_v2_0_5/` al abrir el `.ino`. [Leer instrucciones detalladas](current/Hony850Pro_Nano_Modular_v2_0_5/README.md) y [evidencias de validación](current/Hony850Pro_Nano_Modular_v2_0_5/VALIDACION.md).
