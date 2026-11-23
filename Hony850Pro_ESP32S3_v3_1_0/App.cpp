@@ -312,6 +312,8 @@ void App::handleInput(const InputFrame& e,uint32_t now){
  }
  // AIR click: cambia de canal. La edicion no modifica su preset guardado.
  if(e.airShort){
+   // Prioridad termica: cortar salida antes de escribir NVS.
+   if(heatRequest_)Hardware::heatOff();
    const uint8_t next=(uint8_t)((channelStore_.selectedIndex()+1U)%Cfg::CHANNELS);
    const bool committed=channelStore_.select(next);
    const ChannelStore::Preset preset=channelStore_.selectedPreset();
@@ -331,7 +333,12 @@ void App::handleInput(const InputFrame& e,uint32_t now){
  }
  // AIR sostenido 10s: guardar las modificaciones en el canal actual.
  if(e.airHold10){
+   // Una escritura NVS puede suspender tareas: cortar heater antes y,
+   // si estaba activo, regresar solo despues de nuevo preflujo.
+   const bool restart=heatRequest_;
+   if(restart)Hardware::heatOff();
    channelSaveOK_=channelStore_.saveCurrent(setpoint_,air_);
+   if(restart)startFlow(now);
    channelSavedUntil_=now+Cfg::CHANNEL_SAVED_MS;
    chirp(channelSaveOK_?2600:450,channelSaveOK_?125:280);
    Serial.printf("CANAL_GUARDAR CH%u TEMP=%d AIR=%d OK=%d\n",
