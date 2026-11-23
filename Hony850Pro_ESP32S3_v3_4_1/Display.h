@@ -13,7 +13,7 @@ struct Screen {
  const SensorSample* sensor;
  int setpoint,air,tuneSet,tuneAir;
  uint8_t duty,cycles,pidPage,pidMenuSelection;
- bool heatRequest,cooldown,preflow,loadedPid,fastHeat;
+ bool heatRequest,cooldown,preflow,loadedPid,fastHeat,manualHeatOff;
  uint8_t channel;
  bool channelSaveNotice,channelSaveOK;
  uint16_t preflowSeconds;
