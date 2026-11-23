@@ -29,7 +29,7 @@ void App::begin(){
  setpoint_=bootPreset.tempC;air_=bootPreset.air;lastAir_=air_;
  standArmed_=false; // No autoencendido si estaba levantado al arrancar.
  stand_=digitalRead(Cfg::STAND)==HIGH;
- ramOK_=freeRam()>=8192;
+ ramOK_=freeRam()>=HONY_MIN_HEAP_FOR_HEAT_BYTES;
  const bool wdtBoot=Hardware::resetReason()!=0;
  boot_.begin(millis(),lcdOK,ramOK_,wdtBoot);
  if(wdtBoot){fault_=Fault::Watchdog;view_=View::Fault;}
