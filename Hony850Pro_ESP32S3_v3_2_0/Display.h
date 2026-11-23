@@ -25,6 +25,7 @@ struct Screen {
  uint32_t zcAcceptedPerSec,zcRejectedPerSec,zcPeriodUs;
  uint32_t zcGateOnPerSec,zcGateOffPerSec,tcAgeMs;
  uint32_t freeHeapBytes,minHeapBytes,zcTotal,rejectedTotal;
+ uint32_t tcPeriodMs,tcReadUs,pidPeriodMs;
  bool zcOK,zcInput,tcFresh,relayOn,standOn;
 };
 class Display {
