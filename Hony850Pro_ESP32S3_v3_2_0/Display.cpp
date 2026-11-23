@@ -109,7 +109,7 @@ void Display::render(const Screen& s){
     break;
   default:
     // Permite diagnosticar la cadencia real y el tiempo de lectura.
-    snprintf(a,17,"TC:%lums RD:%luus",
+    snprintf(a,17,"TC%3lums R%4luus",
              (unsigned long)s.tcPeriodMs,
              (unsigned long)s.tcReadUs);
     snprintf(b,17,"PID:%lums (EST)",
